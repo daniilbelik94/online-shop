@@ -1,0 +1,46 @@
+FROM php:8.3-fpm
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpq-dev \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    nginx
+
+# Clear cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
+RUN docker-php-ext-install pdo pdo_pgsql mbstring exif pcntl bcmath gd
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy backend files
+COPY backend/ .
+
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader
+
+# Copy nginx configuration
+COPY docker/nginx/default.conf /etc/nginx/sites-available/default
+
+# Create uploads directory
+RUN mkdir -p public/uploads && chmod 755 public/uploads
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+service nginx start\n\
+php-fpm' > /start.sh && chmod +x /start.sh
+
+EXPOSE 80
+
+CMD ["/start.sh"] 

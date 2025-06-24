@@ -115,18 +115,18 @@ online-shop/
 
    ```env
    # Application Configuration
-   APP_ENV=development
-   APP_DEBUG=true
+   APP_ENV=production
+   APP_DEBUG=false
 
    # PostgreSQL Configuration
    DB_HOST=db
    DB_PORT=5432
-   DB_DATABASE=ecommerce
-   DB_USERNAME=ecommerce_user
+   DB_DATABASE=railway
+   DB_USERNAME=postgres
    DB_PASSWORD=your_strong_db_password
 
    # JWT (JSON Web Token) Configuration
-   JWT_SECRET=your_super_secret_key_for_jwt_that_is_at_least_256_bits_long
+   JWT_SECRET=your-super-secure-256-bit-secret-key-here
    JWT_EXPIRATION=3600
    ```
 
@@ -147,7 +147,7 @@ online-shop/
    - **Backend API**: http://localhost:8080
    - **Admin Dashboard**: http://localhost:5173/admin
    - **API Health Check**: http://localhost:8080/api/health
-   - **Database**: localhost:5433 (user: ecommerce_user)
+   - **Database**: localhost:5433 (user: postgres)
 
 ## 👤 Admin Access & Features
 
@@ -407,7 +407,7 @@ docker-compose exec php composer install
 docker-compose exec frontend npm install
 
 # Database operations
-docker-compose exec db psql -U ecommerce_user -d ecommerce
+docker-compose exec db psql -U postgres -d railway
 ```
 
 ### Making Changes
@@ -548,7 +548,7 @@ curl "http://localhost:8080/api/products/search?q=macbook"
    # Verify database connection
    docker-compose exec php php -r "
    try {
-     \$pdo = new PDO('pgsql:host=db;dbname=ecommerce', 'ecommerce_user', 'your_password');
+     \$pdo = new PDO('pgsql:host=db;dbname=railway', 'postgres', 'your_password');
      echo 'Database connection successful';
    } catch (Exception \$e) {
      echo 'Database connection failed: ' . \$e->getMessage();
@@ -584,7 +584,7 @@ docker-compose logs -f php
 docker-compose logs -f frontend
 
 # Execute SQL queries
-docker-compose exec db psql -U ecommerce_user -d ecommerce -c "SELECT * FROM products LIMIT 5;"
+docker-compose exec db psql -U postgres -d railway -c "SELECT * FROM products LIMIT 5;"
 
 # Check container resource usage
 docker stats

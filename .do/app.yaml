@@ -1,0 +1,44 @@
+name: online-shop
+services:
+  - name: backend
+    source_dir: /
+    github:
+      repo: daniilbelik94/online-shop
+      branch: main
+    dockerfile_path: Dockerfile.backend
+    http_port: 80
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /api
+    envs:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: JWT_SECRET
+        value: your-super-secure-256-bit-secret
+      - key: JWT_EXPIRATION
+        value: "3600"
+
+  - name: frontend
+    source_dir: /frontend
+    github:
+      repo: daniilbelik94/online-shop
+      branch: main
+    dockerfile_path: Dockerfile.prod
+    http_port: 80
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    envs:
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    size: basic
+    num_nodes: 1
