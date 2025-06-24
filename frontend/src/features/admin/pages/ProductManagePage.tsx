@@ -245,11 +245,14 @@ const ProductManagePage: React.FC = () => {
     }
   };
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number | undefined | null) => {
+    if (price == null || isNaN(Number(price))) {
+      return '$0.00';
+    }
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(price);
+    }).format(Number(price));
   };
 
   const getStockStatus = (quantity: number) => {
@@ -319,7 +322,7 @@ const ProductManagePage: React.FC = () => {
                   Общая стоимость
                 </Typography>
                 <Typography variant="h4">
-                  {formatPrice(stats.total_value)}
+                  {formatPrice(stats.total_value || 0)}
                 </Typography>
               </CardContent>
             </Card>

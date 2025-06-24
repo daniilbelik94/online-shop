@@ -101,6 +101,19 @@ const ProductsPage: React.FC = () => {
     loadCategories();
   }, [loadCategories]);
 
+  // Read URL params on mount
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    const urlCategory = searchParams.get('category') || '';
+    const urlBrand = searchParams.get('brand') || '';
+    const urlSort = searchParams.get('sort') || 'created_at_desc';
+    
+    if (urlSearch !== searchQuery) setSearchQuery(urlSearch);
+    if (urlCategory !== selectedCategory) setSelectedCategory(urlCategory);
+    if (urlBrand !== selectedBrand) setBrand(urlBrand);
+    if (urlSort !== sortBy) setSortBy(urlSort);
+  }, [searchParams]);
+
   useEffect(() => {
     loadProducts(1);
   }, [searchQuery, selectedCategory, selectedBrand, priceRange, sortBy]);
@@ -140,11 +153,14 @@ const ProductsPage: React.FC = () => {
     alert(`Product "${product.name}" added to cart!`);
   };
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number | undefined | null) => {
+    if (price == null || isNaN(Number(price))) {
+      return '$0.00';
+    }
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(price);
+    }).format(Number(price));
   };
 
   return (

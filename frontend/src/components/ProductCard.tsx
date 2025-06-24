@@ -23,11 +23,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
   showAddToCart = true,
   onAddToCart,
 }) => {
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number | undefined | null) => {
+    if (price == null || isNaN(Number(price))) {
+      return '$0.00';
+    }
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(price);
+    }).format(Number(price));
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
