@@ -49,9 +49,11 @@ yarn-error.log*
 composer.phar
 
 # Database
-*.sql
 data/
 volumes/
+# Exclude SQL data files but keep schema files
+*.sql
+!docker/postgres/init.sql
 
 # Runtime data
 pids/
