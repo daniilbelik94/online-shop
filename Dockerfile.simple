@@ -4,6 +4,9 @@ FROM php:8.3-apache
 # Install essential dependencies in smaller chunks
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
+    git \
+    zip \
+    unzip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
@@ -21,7 +24,7 @@ WORKDIR /var/www/html
 COPY backend/ .
 
 # Install dependencies without dev packages
-RUN composer install --no-dev --optimize-autoloader --no-cache
+RUN composer install --no-dev --optimize-autoloader
 
 # Set permissions
 RUN mkdir -p public/uploads && chmod 755 public/uploads && \
