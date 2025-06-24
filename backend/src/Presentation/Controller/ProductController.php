@@ -111,6 +111,7 @@ class ProductController
                     'is_featured' => $product->isFeatured(),
                     'category_id' => $product->getCategoryId(),
                     'brand' => $product->getBrand(),
+                    'images' => $product->getImages(),
                     'created_at' => $product->getCreatedAt()->format('Y-m-d H:i:s'),
                     'updated_at' => $product->getUpdatedAt()->format('Y-m-d H:i:s'),
                     'is_in_stock' => $product->isInStock(),
@@ -164,7 +165,7 @@ class ProductController
     public function recommended(): void
     {
         try {
-            $limit = min((int) ($_GET['limit'] ?? 10), 20);
+            $limit = min((int) ($_GET['limit'] ?? 10), 12);
             $products = $this->productService->getRecommendedProducts($limit);
 
             http_response_code(200);

@@ -4,29 +4,33 @@ import { logout } from '../store/slices/authSlice';
 
 // Types
 export interface Category {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description?: string;
-  parent_id?: number;
+  parent_id?: string;
   created_at: string;
   updated_at: string;
   children?: Category[];
 }
 
 export interface Product {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description: string;
+  short_description?: string;
   price: number;
-  category_id: number;
+  category_id: string;
   category?: Category;
   brand?: string;
   sku: string;
   stock_quantity: number;
   image_url?: string;
+  images?: string[] | { image_url: string }[];
   is_active: boolean;
+  is_in_stock?: boolean;
+  is_featured?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -47,6 +51,27 @@ export interface ProductStats {
   out_of_stock: number;
   low_stock: number;
   total_value: number;
+}
+
+export interface CartItem {
+  id: string;
+  product_id: string;
+  quantity: number;
+  cart_price: number;
+  name: string;
+  slug: string;
+  current_price: number;
+  stock_quantity: number;
+  is_active: boolean;
+  image_url?: string;
+  total: number;
+}
+
+export interface Cart {
+  items: CartItem[];
+  total: number;
+  count: number;
+  cart_id: string;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
@@ -142,23 +167,27 @@ export const adminAPI = {
   createProduct: (data: {
     name: string;
     description: string;
+    short_description?: string;
     price: number;
-    category_id: number;
+    category_id: string | number;
     brand?: string;
     stock_quantity: number;
     sku?: string;
     image_url?: string;
+    images?: any[];
   }) => api.post('/admin/products', data),
   
   updateProduct: (id: string, data: {
     name?: string;
     description?: string;
+    short_description?: string;
     price?: number;
-    category_id?: number;
+    category_id?: string | number;
     brand?: string;
     stock_quantity?: number;
     sku?: string;
     image_url?: string;
+    images?: any[];
   }) => api.put(`/admin/products/${id}`, data),
   
   deleteProduct: (id: string) => api.delete(`/admin/products/${id}`),
@@ -209,6 +238,24 @@ export const publicAPI = {
   getCategories: () => api.get('/categories'),
   
   getHealth: () => api.get('/health'),
+};
+
+// Cart API
+export const cartAPI = {
+  getCart: () => api.get('/cart'),
+  
+  addToCart: (productId: string, quantity: number = 1) =>
+    api.post('/cart/add', { product_id: productId, quantity }),
+  
+  updateCartItem: (itemId: string, quantity: number) =>
+    api.put('/cart/update', { item_id: itemId, quantity }),
+  
+  removeFromCart: (itemId: string) =>
+    api.delete('/cart/remove', { data: { item_id: itemId } }),
+  
+  clearCart: () => api.delete('/cart/clear'),
+  
+  mergeGuestCart: () => api.post('/cart/merge'),
 };
 
 export default api; 

@@ -44,6 +44,20 @@ class AuthMiddleware
         return $payload;
     }
 
+    public function getCurrentUser(): ?array
+    {
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+
+        if (!preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+            return null;
+        }
+
+        $token = $matches[1];
+        $payload = $this->authService->validateToken($token);
+
+        return $payload ?: null;
+    }
+
     private function unauthorized(string $message): void
     {
         http_response_code(401);

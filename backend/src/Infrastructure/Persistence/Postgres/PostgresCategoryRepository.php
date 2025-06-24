@@ -50,7 +50,7 @@ class PostgresCategoryRepository implements CategoryRepositoryInterface
 
     public function delete(string $id): bool
     {
-        $stmt = $this->pdo->prepare('UPDATE categories SET is_active = false WHERE id = :id');
+        $stmt = $this->pdo->prepare('DELETE FROM categories WHERE id = :id');
         $stmt->execute(['id' => $id]);
 
         return $stmt->rowCount() > 0;
@@ -60,7 +60,7 @@ class PostgresCategoryRepository implements CategoryRepositoryInterface
     {
         $stmt = $this->pdo->prepare('
             SELECT * FROM categories 
-            ORDER BY sort_order ASC, name ASC
+            ORDER BY name ASC
         ');
         $stmt->execute();
 
@@ -73,8 +73,7 @@ class PostgresCategoryRepository implements CategoryRepositoryInterface
     {
         $stmt = $this->pdo->prepare('
             SELECT * FROM categories 
-            WHERE is_active = true 
-            ORDER BY sort_order ASC, name ASC
+            ORDER BY name ASC
         ');
         $stmt->execute();
 
@@ -88,15 +87,15 @@ class PostgresCategoryRepository implements CategoryRepositoryInterface
         if ($parentId === null) {
             $stmt = $this->pdo->prepare('
                 SELECT * FROM categories 
-                WHERE parent_id IS NULL AND is_active = true
-                ORDER BY sort_order ASC, name ASC
+                WHERE parent_id IS NULL
+                ORDER BY name ASC
             ');
             $stmt->execute();
         } else {
             $stmt = $this->pdo->prepare('
                 SELECT * FROM categories 
-                WHERE parent_id = :parent_id AND is_active = true
-                ORDER BY sort_order ASC, name ASC
+                WHERE parent_id = :parent_id
+                ORDER BY name ASC
             ');
             $stmt->execute(['parent_id' => $parentId]);
         }
@@ -111,22 +110,21 @@ class PostgresCategoryRepository implements CategoryRepositoryInterface
         $stmt = $this->pdo->prepare('
             WITH RECURSIVE category_tree AS (
                 -- Base case: root categories
-                SELECT id, name, slug, description, parent_id, image_url, 
-                       is_active, sort_order, created_at, updated_at, 0 as level
+                SELECT id, name, slug, description, parent_id, 
+                       created_at, updated_at, 0 as level
                 FROM categories 
-                WHERE parent_id IS NULL AND is_active = true
+                WHERE parent_id IS NULL
                 
                 UNION ALL
                 
                 -- Recursive case: child categories
-                SELECT c.id, c.name, c.slug, c.description, c.parent_id, c.image_url,
-                       c.is_active, c.sort_order, c.created_at, c.updated_at, ct.level + 1
+                SELECT c.id, c.name, c.slug, c.description, c.parent_id,
+                       c.created_at, c.updated_at, ct.level + 1
                 FROM categories c
                 INNER JOIN category_tree ct ON c.parent_id = ct.id
-                WHERE c.is_active = true
             )
             SELECT * FROM category_tree 
-            ORDER BY level, sort_order ASC, name ASC
+            ORDER BY level, name ASC
         ');
         $stmt->execute();
 
@@ -154,11 +152,9 @@ class PostgresCategoryRepository implements CategoryRepositoryInterface
 
         $stmt = $this->pdo->prepare('
             INSERT INTO categories (
-                id, name, slug, description, parent_id, image_url, 
-                is_active, sort_order, created_at, updated_at
+                id, name, slug, description, parent_id, created_at, updated_at
             ) VALUES (
-                :id, :name, :slug, :description, :parent_id, :image_url,
-                :is_active, :sort_order, :created_at, :updated_at
+                :id, :name, :slug, :description, :parent_id, :created_at, :updated_at
             )
         ');
 
@@ -168,9 +164,6 @@ class PostgresCategoryRepository implements CategoryRepositoryInterface
             'slug' => $category->getSlug(),
             'description' => $category->getDescription(),
             'parent_id' => $category->getParentId(),
-            'image_url' => $category->getImageUrl(),
-            'is_active' => $category->isActive() ? 'true' : 'false',
-            'sort_order' => $category->getSortOrder(),
             'created_at' => $category->getCreatedAt()->format('Y-m-d H:i:s'),
             'updated_at' => $category->getUpdatedAt()->format('Y-m-d H:i:s')
         ]);
@@ -186,9 +179,6 @@ class PostgresCategoryRepository implements CategoryRepositoryInterface
                 slug = :slug,
                 description = :description,
                 parent_id = :parent_id,
-                image_url = :image_url,
-                is_active = :is_active,
-                sort_order = :sort_order,
                 updated_at = :updated_at
             WHERE id = :id
         ');
@@ -199,9 +189,6 @@ class PostgresCategoryRepository implements CategoryRepositoryInterface
             'slug' => $category->getSlug(),
             'description' => $category->getDescription(),
             'parent_id' => $category->getParentId(),
-            'image_url' => $category->getImageUrl(),
-            'is_active' => $category->isActive() ? 'true' : 'false',
-            'sort_order' => $category->getSortOrder(),
             'updated_at' => $category->getUpdatedAt()->format('Y-m-d H:i:s')
         ]);
     }
@@ -211,18 +198,12 @@ class PostgresCategoryRepository implements CategoryRepositoryInterface
         $category = new Category($data['name'], $data['slug']);
         $category->setId($data['id']);
 
-        if ($data['description']) {
-            $category->updateDetails($data['name'], $data['description'], $data['image_url']);
+        if (!empty($data['description'])) {
+            $category->updateDetails($data['name'], $data['description'], null);
         }
 
-        if ($data['parent_id']) {
+        if (!empty($data['parent_id'])) {
             $category->setParent($data['parent_id']);
-        }
-
-        $category->setSortOrder((int) $data['sort_order']);
-
-        if (!$data['is_active']) {
-            $category->deactivate();
         }
 
         return $category;
@@ -230,7 +211,7 @@ class PostgresCategoryRepository implements CategoryRepositoryInterface
 
     private function generateUuid(): string
     {
-        $stmt = $this->pdo->query('SELECT uuid_generate_v4()');
+        $stmt = $this->pdo->query('SELECT gen_random_uuid()');
         return $stmt->fetchColumn();
     }
 }

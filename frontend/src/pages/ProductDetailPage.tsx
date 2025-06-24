@@ -13,6 +13,10 @@ import {
   CircularProgress,
   Breadcrumbs,
   Link,
+  useMediaQuery,
+  useTheme,
+  Card,
+  CardContent,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -21,11 +25,20 @@ import {
   ArrowBack as BackIcon,
 } from '@mui/icons-material';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '../store';
+import { addToCart } from '../store/slices/cartSlice';
 import { publicAPI, Product } from '../lib/api';
+import ImageGallery from '../components/ImageGallery';
 
 const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const dispatch = useDispatch<AppDispatch>();
+  
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -45,7 +58,7 @@ const ProductDetailPage: React.FC = () => {
         setError('');
         
         const response = await publicAPI.getProduct(slug);
-        setProduct(response.data);
+        setProduct(response.data.data || response.data);
       } catch (err) {
         setError('Product not found');
         console.error('Error loading product:', err);
@@ -69,15 +82,11 @@ const ProductDetailPage: React.FC = () => {
     
     try {
       setAddingToCart(true);
-      // TODO: Implement actual cart functionality
-      console.log('Adding to cart:', { product, quantity });
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      alert(`${quantity} pcs of "${product.name}" added to cart!`);
-    } catch (err) {
-      console.error('Error adding to cart:', err);
+      await dispatch(addToCart({ productId: product.id.toString(), quantity })).unwrap();
+      // You could add a toast notification here
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      // You could show an error message here
     } finally {
       setAddingToCart(false);
     }
@@ -101,7 +110,7 @@ const ProductDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 } }}>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
           <CircularProgress size={60} />
         </Box>
@@ -111,7 +120,7 @@ const ProductDetailPage: React.FC = () => {
 
   if (error || !product) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 } }}>
         <Alert severity="error" sx={{ mb: 3 }}>
           {error || 'Product not found'}
         </Alert>
@@ -119,6 +128,7 @@ const ProductDetailPage: React.FC = () => {
           startIcon={<BackIcon />}
           onClick={() => navigate('/products')}
           variant="outlined"
+          size={isMobile ? "medium" : "large"}
         >
           Back to Catalog
         </Button>
@@ -129,9 +139,14 @@ const ProductDetailPage: React.FC = () => {
   const stockStatus = getStockStatus(product.stock_quantity);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 } }}>
       {/* Breadcrumbs */}
-      <Breadcrumbs sx={{ mb: 3 }}>
+      <Breadcrumbs 
+        sx={{ 
+          mb: { xs: 2, sm: 3 },
+          fontSize: { xs: '0.75rem', sm: '0.875rem' }
+        }}
+      >
         <Link component={RouterLink} to="/" underline="hover">
           Home
         </Link>
@@ -147,75 +162,186 @@ const ProductDetailPage: React.FC = () => {
             {product.category.name}
           </Link>
         )}
-        <Typography color="text.primary">{product.name}</Typography>
+        <Typography 
+          color="text.primary"
+          sx={{ 
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            maxWidth: { xs: '150px', sm: 'none' }
+          }}
+        >
+          {product.name}
+        </Typography>
       </Breadcrumbs>
 
-      <Grid container spacing={4}>
+      <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
         {/* Product Image */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, textAlign: 'center' }}>
-            <img
-              src={product.image_url || '/api/placeholder/500/500'}
-              alt={product.name}
-              style={{
-                width: '100%',
-                maxWidth: 500,
-                height: 'auto',
-                borderRadius: 8,
-              }}
-            />
-          </Paper>
+          <ImageGallery 
+            images={product.images && product.images.length > 0 
+              ? product.images.map(img => typeof img === 'string' ? img : img.image_url)
+              : product.image_url 
+                ? [product.image_url] 
+                : []
+            }
+            alt={product.name}
+            productName={product.name}
+          />
         </Grid>
 
         {/* Product Info */}
         <Grid item xs={12} md={6}>
-          <Box>
+          <Box sx={{ px: { xs: 1, sm: 0 } }}>
             {/* Product Name and Brand */}
-            <Typography variant="h3" component="h1" gutterBottom>
+            <Typography 
+              variant={isSmallMobile ? "h5" : isMobile ? "h4" : "h3"} 
+              component="h1" 
+              gutterBottom
+              sx={{
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' },
+                lineHeight: 1.2,
+                fontWeight: { xs: 'bold', md: 'normal' }
+              }}
+            >
               {product.name}
             </Typography>
             
             {product.brand && (
-              <Typography variant="h6" color="text.secondary" gutterBottom>
+              <Typography 
+                variant={isMobile ? "body1" : "h6"} 
+                color="text.secondary" 
+                gutterBottom
+                sx={{
+                  fontSize: { xs: '1rem', sm: '1.25rem' }
+                }}
+              >
                 Brand: {product.brand}
               </Typography>
             )}
 
             {/* SKU */}
-            <Typography variant="body2" color="text.secondary" gutterBottom>
+            <Typography 
+              variant="body2" 
+              color="text.secondary" 
+              gutterBottom
+              sx={{
+                fontSize: { xs: '0.75rem', sm: '0.875rem' }
+              }}
+            >
               SKU: {product.sku}
             </Typography>
 
-            <Divider sx={{ my: 2 }} />
+            <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
 
             {/* Price */}
-            <Typography variant="h4" color="primary" fontWeight="bold" gutterBottom>
+            <Typography 
+              variant={isSmallMobile ? "h5" : isMobile ? "h4" : "h3"} 
+              color="primary" 
+              fontWeight="bold" 
+              gutterBottom
+              sx={{
+                fontSize: { xs: '1.75rem', sm: '2.125rem', md: '3rem' }
+              }}
+            >
               {formatPrice(product.price)}
             </Typography>
 
             {/* Stock Status */}
-            <Box sx={{ mb: 3 }}>
+            <Box sx={{ mb: { xs: 2, sm: 3 } }}>
               <Chip
                 label={stockStatus.label}
                 color={stockStatus.color}
                 size="medium"
+                sx={{
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  height: { xs: 28, sm: 32 }
+                }}
               />
             </Box>
 
+            {/* Description */}
+            <Card 
+              sx={{ 
+                mb: { xs: 2, sm: 3 }, 
+                backgroundColor: '#f8f9fa',
+                border: '1px solid #e9ecef',
+                borderRadius: 2,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}
+            >
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Typography 
+                  variant="h6" 
+                  gutterBottom
+                  sx={{
+                    fontSize: { xs: '1rem', sm: '1.125rem' },
+                    fontWeight: 'bold',
+                    color: 'primary.main',
+                    mb: 2
+                  }}
+                >
+                  Description
+                </Typography>
+                <Typography 
+                  variant="body1" 
+                  sx={{
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    lineHeight: 1.8,
+                    color: 'text.primary',
+                    whiteSpace: 'pre-line', // Preserve line breaks
+                    '& p': {
+                      marginBottom: '1em',
+                    }
+                  }}
+                  component="div"
+                >
+                  {product.description?.split('\n').map((paragraph, index) => (
+                    <Typography
+                      key={index}
+                      variant="body1"
+                      paragraph
+                      sx={{
+                        fontSize: { xs: '0.875rem', sm: '1rem' },
+                        lineHeight: 1.8,
+                        mb: paragraph.trim() ? 1.5 : 0
+                      }}
+                    >
+                      {paragraph}
+                    </Typography>
+                  ))}
+                </Typography>
+              </CardContent>
+            </Card>
+
             {/* Quantity Selector */}
             {product.stock_quantity > 0 && (
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="body1" gutterBottom>
+              <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+                <Typography 
+                  variant="body1" 
+                  gutterBottom
+                  sx={{
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    fontWeight: 'medium'
+                  }}
+                >
                   Quantity:
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: { xs: 1, sm: 2 },
+                  flexWrap: 'wrap'
+                }}>
                   <Button
                     variant="outlined"
-                    size="small"
+                    size={isMobile ? "small" : "medium"}
                     onClick={() => handleQuantityChange(-1)}
                     disabled={quantity <= 1}
+                    sx={{ minWidth: { xs: 36, sm: 40 } }}
                   >
-                    <RemoveIcon />
+                    <RemoveIcon fontSize={isMobile ? "small" : "medium"} />
                   </Button>
                   <TextField
                     value={quantity}
@@ -225,126 +351,126 @@ const ProductDetailPage: React.FC = () => {
                         setQuantity(value);
                       }
                     }}
-                    size="small"
-                    sx={{ width: 80 }}
-                    inputProps={{ 
-                      style: { textAlign: 'center' },
+                    size={isMobile ? "small" : "medium"}
+                    sx={{ 
+                      width: { xs: 60, sm: 80 },
+                      '& input': {
+                        textAlign: 'center',
+                        fontSize: { xs: '0.875rem', sm: '1rem' }
+                      }
+                    }}
+                    inputProps={{
                       min: 1,
-                      max: product.stock_quantity 
+                      max: product.stock_quantity,
+                      type: 'number'
                     }}
                   />
                   <Button
                     variant="outlined"
-                    size="small"
+                    size={isMobile ? "small" : "medium"}
                     onClick={() => handleQuantityChange(1)}
                     disabled={quantity >= product.stock_quantity}
+                    sx={{ minWidth: { xs: 36, sm: 40 } }}
                   >
-                    <AddIcon />
+                    <AddIcon fontSize={isMobile ? "small" : "medium"} />
                   </Button>
                 </Box>
               </Box>
             )}
 
             {/* Add to Cart Button */}
-            <Box sx={{ mb: 3 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              gap: { xs: 1, sm: 2 },
+              flexDirection: { xs: 'column', sm: 'row' }
+            }}>
               <Button
                 variant="contained"
-                size="large"
-                fullWidth
-                startIcon={addingToCart ? <CircularProgress size={20} /> : <CartIcon />}
+                size={isMobile ? "medium" : "large"}
+                startIcon={<CartIcon />}
                 onClick={handleAddToCart}
                 disabled={product.stock_quantity === 0 || addingToCart}
-                sx={{ py: 1.5 }}
+                sx={{ 
+                  flex: 1,
+                  py: { xs: 1, sm: 1.5 },
+                  fontSize: { xs: '0.875rem', sm: '1rem' }
+                }}
               >
-                {addingToCart 
-                  ? 'Adding...' 
-                  : product.stock_quantity === 0 
-                    ? 'Out of Stock' 
-                    : `Add to Cart for ${formatPrice(product.price * quantity)}`
-                }
+                {addingToCart ? 'Adding...' : 
+                 product.stock_quantity === 0 ? 'Out of Stock' : 
+                 `Add ${quantity} to Cart`}
+              </Button>
+              
+              <Button
+                variant="outlined"
+                size={isMobile ? "medium" : "large"}
+                onClick={() => navigate('/products')}
+                sx={{ 
+                  minWidth: { xs: 'auto', sm: 140 },
+                  py: { xs: 1, sm: 1.5 },
+                  fontSize: { xs: '0.875rem', sm: '1rem' }
+                }}
+              >
+                Continue Shopping
               </Button>
             </Box>
 
-            <Divider sx={{ my: 3 }} />
-
-            {/* Product Description */}
-            <Typography variant="h6" gutterBottom>
-              Product Description
-            </Typography>
-            <Typography variant="body1" paragraph>
-              {product.description}
-            </Typography>
-
-            {/* Product Details */}
-            <Paper sx={{ p: 2, mt: 3, backgroundColor: 'grey.50' }}>
-              <Typography variant="h6" gutterBottom>
-                Specifications
+            {/* Additional Product Info */}
+            <Box sx={{ mt: { xs: 3, sm: 4 } }}>
+              <Typography 
+                variant="h6" 
+                gutterBottom
+                sx={{
+                  fontSize: { xs: '1rem', sm: '1.25rem' },
+                  fontWeight: 'bold'
+                }}
+              >
+                Product Details
               </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
+              <Box sx={{ 
+                display: 'grid', 
+                gap: { xs: 0.5, sm: 1 },
+                fontSize: { xs: '0.875rem', sm: '1rem' }
+              }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">
-                    Category:
+                    Brand:
                   </Typography>
-                </Grid>
-                <Grid item xs={6}>
                   <Typography variant="body2">
-                    {product.category?.name || 'Not specified'}
+                    {product.brand || 'N/A'}
                   </Typography>
-                </Grid>
-                
-                {product.brand && (
-                  <>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        Brand:
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2">
-                        {product.brand}
-                      </Typography>
-                    </Grid>
-                  </>
-                )}
-                
-                <Grid item xs={6}>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">
                     SKU:
                   </Typography>
-                </Grid>
-                <Grid item xs={6}>
                   <Typography variant="body2">
                     {product.sku}
                   </Typography>
-                </Grid>
-                
-                <Grid item xs={6}>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">
-                    In Stock:
+                    Stock:
                   </Typography>
-                </Grid>
-                <Grid item xs={6}>
                   <Typography variant="body2">
-                    {product.stock_quantity} pcs
+                    {product.stock_quantity} units
                   </Typography>
-                </Grid>
-              </Grid>
-            </Paper>
+                </Box>
+                {product.category && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Category:
+                    </Typography>
+                    <Typography variant="body2">
+                      {product.category.name}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </Box>
           </Box>
         </Grid>
       </Grid>
-
-      {/* Back Button */}
-      <Box sx={{ mt: 4, textAlign: 'center' }}>
-        <Button
-          startIcon={<BackIcon />}
-          onClick={() => navigate('/products')}
-          variant="outlined"
-          size="large"
-        >
-          Back to Catalog
-        </Button>
-      </Box>
     </Container>
   );
 };

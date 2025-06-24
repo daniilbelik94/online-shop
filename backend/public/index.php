@@ -36,7 +36,7 @@ try {
         'pgsql:host=%s;port=%s;dbname=%s',
         $_ENV['DB_HOST'] ?? 'db',
         $_ENV['DB_PORT'] ?? '5432',
-        $_ENV['DB_DATABASE'] ?? 'amazon_clone_db'
+        $_ENV['DB_DATABASE'] ?? 'ecommerce'
     );
 
     $pdo = new PDO($dsn, $_ENV['DB_USERNAME'], $_ENV['DB_PASSWORD'], [
@@ -52,6 +52,7 @@ try {
     $userService = new \App\Application\Service\UserService($userRepository);
     $productService = new \App\Application\Service\ProductService($productRepository);
     $categoryService = new \App\Application\Service\CategoryService($categoryRepository);
+    $cartService = new \App\Application\Service\CartService($pdo, $productRepository, $userRepository);
 
     $authService = new \App\Application\Service\AuthService(
         $userService,
@@ -67,6 +68,8 @@ try {
     $userController = new \App\Presentation\Controller\UserController($userService);
     $productController = new \App\Presentation\Controller\ProductController($productService, $categoryService);
     $adminProductController = new \App\Presentation\Controller\AdminProductController($productService, $authMiddleware);
+    $cartController = new \App\Presentation\Controller\CartController($cartService, $authMiddleware);
+    $imageUploadController = new \App\Presentation\Controller\ImageUploadController();
 
     // Basic routing
     $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
@@ -117,6 +120,53 @@ try {
                 $currentUser = $authMiddleware->handle();
                 if ($currentUser) {
                     $userController->updateCurrentUser($currentUser);
+                }
+                break;
+
+            case $route === '/user/profile' && $requestMethod === 'GET':
+                $currentUser = $authMiddleware->handle();
+                if ($currentUser) {
+                    $userController->getCurrentUser($currentUser);
+                }
+                break;
+
+            case $route === '/user/profile' && $requestMethod === 'PUT':
+                $currentUser = $authMiddleware->handle();
+                if ($currentUser) {
+                    $userController->updateCurrentUser($currentUser);
+                }
+                break;
+
+            case $route === '/user/change-password' && $requestMethod === 'POST':
+                $currentUser = $authMiddleware->handle();
+                if ($currentUser) {
+                    $userController->changePassword($currentUser);
+                }
+                break;
+
+            case $route === '/user/orders' && $requestMethod === 'GET':
+                $currentUser = $authMiddleware->handle();
+                if ($currentUser) {
+                    // Mock orders data for now
+                    $orders = [
+                        [
+                            'id' => 1,
+                            'order_number' => 'ORD-2024-001',
+                            'date' => '2024-06-20',
+                            'status' => 'delivered',
+                            'total' => 299.99,
+                            'items_count' => 2,
+                        ],
+                        [
+                            'id' => 2,
+                            'order_number' => 'ORD-2024-002',
+                            'date' => '2024-06-18',
+                            'status' => 'shipped',
+                            'total' => 149.99,
+                            'items_count' => 1,
+                        ]
+                    ];
+                    echo json_encode(['data' => $orders]);
                 }
                 break;
 
@@ -275,6 +325,53 @@ try {
                         'message' => 'Order creation - TODO',
                         'data' => null
                     ]);
+                }
+                break;
+
+            // Cart endpoints
+            case $route === '/cart' && $requestMethod === 'GET':
+                $cartController->getCart();
+                break;
+
+            case $route === '/cart/add' && $requestMethod === 'POST':
+                $cartController->addToCart();
+                break;
+
+            case $route === '/cart/update' && $requestMethod === 'PUT':
+                $cartController->updateCartItem();
+                break;
+
+            case $route === '/cart/remove' && $requestMethod === 'DELETE':
+                $cartController->removeFromCart();
+                break;
+
+            case $route === '/cart/clear' && $requestMethod === 'DELETE':
+                $cartController->clearCart();
+                break;
+
+            case $route === '/cart/merge' && $requestMethod === 'POST':
+                $cartController->mergeGuestCart();
+                break;
+
+            // Image upload endpoints (Admin only)
+            case $route === '/admin/upload/image' && $requestMethod === 'POST':
+                $currentUser = $authMiddleware->handle('is_staff');
+                if ($currentUser) {
+                    $imageUploadController->uploadSingle();
+                }
+                break;
+
+            case $route === '/admin/upload/images' && $requestMethod === 'POST':
+                $currentUser = $authMiddleware->handle('is_staff');
+                if ($currentUser) {
+                    $imageUploadController->uploadMultiple();
+                }
+                break;
+
+            case $route === '/admin/delete/image' && $requestMethod === 'DELETE':
+                $currentUser = $authMiddleware->handle('is_staff');
+                if ($currentUser) {
+                    $imageUploadController->deleteImage();
                 }
                 break;
 

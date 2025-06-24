@@ -100,6 +100,7 @@ class AdminProductController
                 'is_featured' => $product->isFeatured(),
                 'category_id' => $product->getCategoryId(),
                 'brand' => $product->getBrand(),
+                'images' => $product->getImages(),
                 'created_at' => $product->getCreatedAt()->format('Y-m-d H:i:s'),
                 'updated_at' => $product->getUpdatedAt()->format('Y-m-d H:i:s'),
                 'is_in_stock' => $product->isInStock(),
@@ -163,6 +164,7 @@ class AdminProductController
                 'is_featured' => $product->isFeatured(),
                 'category_id' => $product->getCategoryId(),
                 'brand' => $product->getBrand(),
+                'images' => $product->getImages(),
                 'created_at' => $product->getCreatedAt()->format('Y-m-d H:i:s'),
                 'updated_at' => $product->getUpdatedAt()->format('Y-m-d H:i:s'),
                 'is_in_stock' => $product->isInStock(),
@@ -242,6 +244,7 @@ class AdminProductController
                 'is_featured' => $product->isFeatured(),
                 'category_id' => $product->getCategoryId(),
                 'brand' => $product->getBrand(),
+                'images' => $product->getImages(),
                 'created_at' => $product->getCreatedAt()->format('Y-m-d H:i:s'),
                 'updated_at' => $product->getUpdatedAt()->format('Y-m-d H:i:s'),
                 'is_in_stock' => $product->isInStock(),
@@ -293,7 +296,7 @@ class AdminProductController
             http_response_code(200);
             echo json_encode([
                 'success' => true,
-                'message' => 'Product deactivated successfully'
+                'message' => 'Product deleted successfully'
             ]);
         } catch (\Exception $e) {
             http_response_code(500);
@@ -325,7 +328,7 @@ class AdminProductController
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'error' => 'Failed to retrieve stats: ' . $e->getMessage()
+                'error' => 'Failed to get stats: ' . $e->getMessage()
             ]);
         }
     }
@@ -351,7 +354,7 @@ class AdminProductController
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'error' => 'Failed to retrieve low stock products: ' . $e->getMessage()
+                'error' => 'Failed to get low stock products: ' . $e->getMessage()
             ]);
         }
     }

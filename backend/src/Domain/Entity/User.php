@@ -118,7 +118,7 @@ class User
 
     public function setRole(string $role): void
     {
-        if (!in_array($role, ['customer', 'admin', 'seller'])) {
+        if (!in_array($role, ['customer', 'admin', 'staff'])) {
             throw new \InvalidArgumentException('Invalid role');
         }
         $this->role = $role;
@@ -156,7 +156,7 @@ class User
 
     public function isStaff(): bool
     {
-        return in_array($this->role, ['admin', 'seller']);
+        return in_array($this->role, ['admin', 'staff']);
     }
 
     public function isSuperuser(): bool

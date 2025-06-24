@@ -18,37 +18,45 @@ class PostgresProductRepository implements ProductRepositoryInterface
     public function findById(string $id): ?Product
     {
         $stmt = $this->pdo->prepare('
-            SELECT p.*, c.name as category_name 
-            FROM products p
-            LEFT JOIN categories c ON p.category_id = c.id
+            SELECT p.*, c.name as category_name, c.slug as category_slug 
+            FROM products p 
+            LEFT JOIN categories c ON p.category_id = c.id 
             WHERE p.id = :id
         ');
         $stmt->execute(['id' => $id]);
 
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $data ? $this->hydrate($data) : null;
+        if (!$data) {
+            return null;
+        }
+
+        return $this->hydrate($data);
     }
 
     public function findBySlug(string $slug): ?Product
     {
         $stmt = $this->pdo->prepare('
-            SELECT p.*, c.name as category_name 
-            FROM products p
-            LEFT JOIN categories c ON p.category_id = c.id
+            SELECT p.*, c.name as category_name, c.slug as category_slug 
+            FROM products p 
+            LEFT JOIN categories c ON p.category_id = c.id 
             WHERE p.slug = :slug AND p.is_active = true
         ');
         $stmt->execute(['slug' => $slug]);
 
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $data ? $this->hydrate($data) : null;
+        if (!$data) {
+            return null;
+        }
+
+        return $this->hydrate($data);
     }
 
     public function findBySku(string $sku): ?Product
     {
         $stmt = $this->pdo->prepare('
-            SELECT p.*, c.name as category_name 
+            SELECT p.*, c.name as category_name, c.slug as category_slug
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             WHERE p.sku = :sku
@@ -80,7 +88,7 @@ class PostgresProductRepository implements ProductRepositoryInterface
     public function findAll(int $limit = 50, int $offset = 0): array
     {
         $stmt = $this->pdo->prepare('
-            SELECT p.*, c.name as category_name 
+            SELECT p.*, c.name as category_name, c.slug as category_slug
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             ORDER BY p.created_at DESC
@@ -98,7 +106,7 @@ class PostgresProductRepository implements ProductRepositoryInterface
     public function findActive(int $limit = 50, int $offset = 0): array
     {
         $stmt = $this->pdo->prepare('
-            SELECT p.*, c.name as category_name 
+            SELECT p.*, c.name as category_name, c.slug as category_slug
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             WHERE p.is_active = true
@@ -117,7 +125,7 @@ class PostgresProductRepository implements ProductRepositoryInterface
     public function findFeatured(int $limit = 50, int $offset = 0): array
     {
         $stmt = $this->pdo->prepare('
-            SELECT p.*, c.name as category_name 
+            SELECT p.*, c.name as category_name, c.slug as category_slug
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             WHERE p.is_active = true AND p.is_featured = true
@@ -136,7 +144,7 @@ class PostgresProductRepository implements ProductRepositoryInterface
     public function findByCategory(string $categoryId, int $limit = 50, int $offset = 0): array
     {
         $stmt = $this->pdo->prepare('
-            SELECT p.*, c.name as category_name 
+            SELECT p.*, c.name as category_name, c.slug as category_slug
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             WHERE p.category_id = :category_id AND p.is_active = true
@@ -156,7 +164,7 @@ class PostgresProductRepository implements ProductRepositoryInterface
     public function findByBrand(string $brand, int $limit = 50, int $offset = 0): array
     {
         $stmt = $this->pdo->prepare('
-            SELECT p.*, c.name as category_name 
+            SELECT p.*, c.name as category_name, c.slug as category_slug
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             WHERE p.brand = :brand AND p.is_active = true
@@ -178,7 +186,7 @@ class PostgresProductRepository implements ProductRepositoryInterface
         $searchTerm = '%' . $query . '%';
 
         $stmt = $this->pdo->prepare('
-            SELECT p.*, c.name as category_name 
+            SELECT p.*, c.name as category_name, c.slug as category_slug
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             WHERE p.is_active = true 
@@ -213,7 +221,7 @@ class PostgresProductRepository implements ProductRepositoryInterface
 
     public function findAdvanced(array $filters = [], string $sort = 'created_at_desc', int $limit = 50, int $offset = 0): array
     {
-        $conditions = ['p.is_active = true'];
+        $conditions = []; // Remove the is_active filter for admin panel
         $params = [];
 
         // Category filter
@@ -266,13 +274,13 @@ class PostgresProductRepository implements ProductRepositoryInterface
             default => 'p.created_at DESC'
         };
 
-        $whereClause = implode(' AND ', $conditions);
+        $whereClause = !empty($conditions) ? 'WHERE ' . implode(' AND ', $conditions) : '';
 
         $sql = "
-            SELECT p.*, c.name as category_name 
+            SELECT p.*, c.name as category_name, c.slug as category_slug
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
-            WHERE {$whereClause}
+            {$whereClause}
             ORDER BY {$orderBy}
             LIMIT :limit OFFSET :offset
         ";
@@ -295,7 +303,7 @@ class PostgresProductRepository implements ProductRepositoryInterface
     public function findLowStock(): array
     {
         $stmt = $this->pdo->prepare('
-            SELECT p.*, c.name as category_name 
+            SELECT p.*, c.name as category_name, c.slug as category_slug
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             WHERE p.is_active = true 
@@ -328,7 +336,7 @@ class PostgresProductRepository implements ProductRepositoryInterface
 
     public function countAdvanced(array $filters = []): int
     {
-        $conditions = ['p.is_active = true'];
+        $conditions = []; // Remove the is_active filter for admin panel
         $params = [];
 
         // Apply same filters as findAdvanced
@@ -366,9 +374,9 @@ class PostgresProductRepository implements ProductRepositoryInterface
             $conditions[] = 'p.is_featured = true';
         }
 
-        $whereClause = implode(' AND ', $conditions);
+        $whereClause = !empty($conditions) ? 'WHERE ' . implode(' AND ', $conditions) : '';
 
-        $sql = "SELECT COUNT(*) FROM products p WHERE {$whereClause}";
+        $sql = "SELECT COUNT(*) FROM products p {$whereClause}";
 
         $stmt = $this->pdo->prepare($sql);
 
@@ -404,16 +412,21 @@ class PostgresProductRepository implements ProductRepositoryInterface
         $stmt = $this->pdo->prepare('
             INSERT INTO products (
                 id, name, slug, description, short_description, sku, price, 
-                compare_price, cost_price, weight, dimensions, stock_quantity, 
-                low_stock_threshold, manage_stock, stock_status, is_active, 
-                is_featured, category_id, brand, created_at, updated_at
+                compare_price, weight, dimensions, stock_quantity, 
+                stock_status, is_active, is_featured, category_id, brand, images,
+                created_at, updated_at
             ) VALUES (
                 :id, :name, :slug, :description, :short_description, :sku, :price,
-                :compare_price, :cost_price, :weight, :dimensions, :stock_quantity,
-                :low_stock_threshold, :manage_stock, :stock_status, :is_active,
-                :is_featured, :category_id, :brand, :created_at, :updated_at
+                :compare_price, :weight, :dimensions, :stock_quantity,
+                :stock_status, :is_active, :is_featured, :category_id, :brand, :images,
+                :created_at, :updated_at
             )
         ');
+
+        $images = $product->getImages();
+        $imagesJson = empty($images) ? null : '{' . implode(',', array_map(function ($img) {
+            return '"' . str_replace('"', '\"', $img) . '"';
+        }, $images)) . '}';
 
         $stmt->execute([
             'id' => $id,
@@ -424,17 +437,15 @@ class PostgresProductRepository implements ProductRepositoryInterface
             'sku' => $product->getSku(),
             'price' => $product->getPrice(),
             'compare_price' => $product->getComparePrice(),
-            'cost_price' => $product->getCostPrice(),
             'weight' => $product->getWeight(),
             'dimensions' => $product->getDimensions(),
             'stock_quantity' => $product->getStockQuantity(),
-            'low_stock_threshold' => $product->getLowStockThreshold(),
-            'manage_stock' => $product->isManageStock() ? 'true' : 'false',
             'stock_status' => $product->getStockStatus(),
             'is_active' => $product->isActive() ? 'true' : 'false',
             'is_featured' => $product->isFeatured() ? 'true' : 'false',
             'category_id' => $product->getCategoryId(),
             'brand' => $product->getBrand(),
+            'images' => $imagesJson,
             'created_at' => $product->getCreatedAt()->format('Y-m-d H:i:s'),
             'updated_at' => $product->getUpdatedAt()->format('Y-m-d H:i:s')
         ]);
@@ -453,20 +464,23 @@ class PostgresProductRepository implements ProductRepositoryInterface
                 sku = :sku,
                 price = :price,
                 compare_price = :compare_price,
-                cost_price = :cost_price,
                 weight = :weight,
                 dimensions = :dimensions,
                 stock_quantity = :stock_quantity,
-                low_stock_threshold = :low_stock_threshold,
-                manage_stock = :manage_stock,
                 stock_status = :stock_status,
                 is_active = :is_active,
                 is_featured = :is_featured,
                 category_id = :category_id,
                 brand = :brand,
+                images = :images,
                 updated_at = :updated_at
             WHERE id = :id
         ');
+
+        $images = $product->getImages();
+        $imagesJson = empty($images) ? null : '{' . implode(',', array_map(function ($img) {
+            return '"' . str_replace('"', '\"', $img) . '"';
+        }, $images)) . '}';
 
         $stmt->execute([
             'id' => $product->getId(),
@@ -477,17 +491,15 @@ class PostgresProductRepository implements ProductRepositoryInterface
             'sku' => $product->getSku(),
             'price' => $product->getPrice(),
             'compare_price' => $product->getComparePrice(),
-            'cost_price' => $product->getCostPrice(),
             'weight' => $product->getWeight(),
             'dimensions' => $product->getDimensions(),
             'stock_quantity' => $product->getStockQuantity(),
-            'low_stock_threshold' => $product->getLowStockThreshold(),
-            'manage_stock' => $product->isManageStock() ? 'true' : 'false',
             'stock_status' => $product->getStockStatus(),
             'is_active' => $product->isActive() ? 'true' : 'false',
             'is_featured' => $product->isFeatured() ? 'true' : 'false',
             'category_id' => $product->getCategoryId(),
             'brand' => $product->getBrand(),
+            'images' => $imagesJson,
             'updated_at' => $product->getUpdatedAt()->format('Y-m-d H:i:s')
         ]);
     }
@@ -505,34 +517,55 @@ class PostgresProductRepository implements ProductRepositoryInterface
 
         $product->updateDetails(
             $data['name'],
-            $data['description'],
-            $data['short_description'],
-            $data['brand']
+            $data['description'] ?? '',
+            $data['short_description'] ?? '',
+            $data['brand'] ?? ''
         );
 
-        if ($data['compare_price'] || $data['cost_price']) {
+        if ($data['compare_price'] ?? null) {
             $product->updatePricing(
                 (float) $data['price'],
-                $data['compare_price'] ? (float) $data['compare_price'] : null,
-                $data['cost_price'] ? (float) $data['cost_price'] : null
+                isset($data['compare_price']) && $data['compare_price'] ? (float) $data['compare_price'] : null,
+                null // cost_price is not stored in database
             );
         }
 
         $product->updateInventory(
             (int) $data['stock_quantity'],
-            (int) $data['low_stock_threshold']
+            (int) ($data['low_stock_threshold'] ?? 0)
         );
 
-        if ($data['category_id']) {
-            $product->setCategory($data['category_id']);
+        if ($data['category_id'] ?? null) {
+            $product->setCategoryInfo(
+                $data['category_id'],
+                $data['category_name'] ?? null,
+                $data['category_slug'] ?? null
+            );
         }
 
-        if ($data['is_featured']) {
+        if ($data['is_featured'] ?? false) {
             $product->setFeatured(true);
         }
 
-        if (!$data['is_active']) {
+        if (!($data['is_active'] ?? true)) {
             $product->deactivate();
+        }
+
+        // Handle images array
+        if (!empty($data['images'])) {
+            $images = [];
+            if (is_string($data['images'])) {
+                // Parse PostgreSQL array format
+                $imagesStr = trim($data['images'], '{}');
+                if ($imagesStr) {
+                    $images = array_map(function ($img) {
+                        return trim($img, '"');
+                    }, explode(',', $imagesStr));
+                }
+            } elseif (is_array($data['images'])) {
+                $images = $data['images'];
+            }
+            $product->setImages($images);
         }
 
         return $product;
@@ -540,7 +573,7 @@ class PostgresProductRepository implements ProductRepositoryInterface
 
     private function generateUuid(): string
     {
-        $stmt = $this->pdo->query('SELECT uuid_generate_v4()');
+        $stmt = $this->pdo->query('SELECT gen_random_uuid()');
         return $stmt->fetchColumn();
     }
 }

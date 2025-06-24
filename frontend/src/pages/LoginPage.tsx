@@ -63,7 +63,9 @@ const LoginPage: React.FC = () => {
     dispatch(loginStart());
 
     try {
+      console.log('Attempting login with:', formData.email);
       const response = await authAPI.login(formData.email, formData.password);
+      console.log('Login response:', response.data);
       const { token, user } = response.data;
       
       dispatch(loginSuccess({ token, user }));
@@ -75,14 +77,19 @@ const LoginPage: React.FC = () => {
         navigate('/');
       }
     } catch (error: any) {
+      console.error('Login error:', error);
       dispatch(loginFailure());
       
       if (error.response?.status === 400 && error.response?.data?.errors) {
         // Handle validation errors from backend
         setErrors(error.response.data.errors);
+      } else if (error.response?.data?.error) {
+        setErrors({ 
+          general: error.response.data.error
+        });
       } else {
         setErrors({ 
-          general: error.response?.data?.error || 'Login failed. Please try again.' 
+          general: 'Login failed. Please check your credentials and try again.' 
         });
       }
     } finally {

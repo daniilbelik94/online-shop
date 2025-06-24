@@ -22,7 +22,10 @@ class Product
     private bool $isActive = true;
     private bool $isFeatured = false;
     private ?string $categoryId = null;
+    private ?string $categoryName = null;
+    private ?string $categorySlug = null;
     private ?string $brand = null;
+    private array $images = [];
     private \DateTimeImmutable $createdAt;
     private \DateTimeImmutable $updatedAt;
 
@@ -131,9 +134,24 @@ class Product
         return $this->categoryId;
     }
 
+    public function getCategoryName(): ?string
+    {
+        return $this->categoryName;
+    }
+
+    public function getCategorySlug(): ?string
+    {
+        return $this->categorySlug;
+    }
+
     public function getBrand(): ?string
     {
         return $this->brand;
+    }
+
+    public function getImages(): array
+    {
+        return $this->images;
     }
 
     public function getCreatedAt(): \DateTimeImmutable
@@ -187,9 +205,23 @@ class Product
         $this->updatedAt = new \DateTimeImmutable();
     }
 
+    public function setCategoryInfo(string $categoryId, ?string $categoryName = null, ?string $categorySlug = null): void
+    {
+        $this->categoryId = $categoryId;
+        $this->categoryName = $categoryName;
+        $this->categorySlug = $categorySlug;
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
     public function setFeatured(bool $featured): void
     {
         $this->isFeatured = $featured;
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function setImages(array $images): void
+    {
+        $this->images = $images;
         $this->updatedAt = new \DateTimeImmutable();
     }
 

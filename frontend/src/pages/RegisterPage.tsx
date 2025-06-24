@@ -90,6 +90,7 @@ const RegisterPage: React.FC = () => {
     setIsLoading(true);
 
     try {
+      console.log('Attempting registration with:', formData.email);
       // Register user
       const registerResponse = await authAPI.register({
         username: formData.username,
@@ -99,9 +100,11 @@ const RegisterPage: React.FC = () => {
         last_name: formData.last_name,
         phone: formData.phone || undefined,
       });
+      console.log('Registration response:', registerResponse.data);
 
       // Auto-login after successful registration
       const loginResponse = await authAPI.login(formData.email, formData.password);
+      console.log('Auto-login response:', loginResponse.data);
       const { token, user } = loginResponse.data;
       
       dispatch(loginSuccess({ token, user }));
@@ -113,12 +116,17 @@ const RegisterPage: React.FC = () => {
         navigate('/');
       }
     } catch (error: any) {
+      console.error('Registration error:', error);
       if (error.response?.status === 400 && error.response?.data?.errors) {
         // Handle validation errors from backend
         setErrors(error.response.data.errors);
+      } else if (error.response?.data?.error) {
+        setErrors({ 
+          general: error.response.data.error
+        });
       } else {
         setErrors({ 
-          general: error.response?.data?.error || 'Registration failed. Please try again.' 
+          general: 'Registration failed. Please try again.' 
         });
       }
     } finally {

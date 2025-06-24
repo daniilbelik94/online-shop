@@ -102,6 +102,43 @@ class UserController
         }
     }
 
+    public function changePassword(array $currentUser): void
+    {
+        header('Content-Type: application/json');
+
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+
+            if (!$input || !isset($input['current_password']) || !isset($input['new_password'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Current password and new password are required']);
+                return;
+            }
+
+            if (strlen($input['new_password']) < 6) {
+                http_response_code(400);
+                echo json_encode(['error' => 'New password must be at least 6 characters long']);
+                return;
+            }
+
+            // Change password using UserService
+            $this->userService->changeUserPassword(
+                $currentUser['user_id'],
+                $input['current_password'],
+                $input['new_password']
+            );
+
+            http_response_code(200);
+            echo json_encode(['message' => 'Password changed successfully']);
+        } catch (\InvalidArgumentException $e) {
+            http_response_code(400);
+            echo json_encode(['error' => $e->getMessage()]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Internal server error']);
+        }
+    }
+
     private function validateRegistrationInput(?array $input): bool
     {
         return $input &&

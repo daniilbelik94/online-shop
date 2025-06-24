@@ -18,6 +18,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import AuthPage from './pages/AuthPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ProfilePage from './pages/ProfilePage';
 import AdminRoute from './components/AdminRoute';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
 import UserListPage from './features/admin/pages/UserListPage';
@@ -56,7 +57,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <Router>
+          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <div className="App">
               <Routes>
                 {/* Admin Routes - No Header/Footer */}
@@ -100,6 +101,7 @@ function App() {
                         <Route path="/auth" element={<AuthPage />} />
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/register" element={<RegisterPage />} />
+                        <Route path="/profile" element={<ProfilePage />} />
                       </Routes>
                     </main>
                     <Footer />

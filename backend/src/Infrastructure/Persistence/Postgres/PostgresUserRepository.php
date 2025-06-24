@@ -84,13 +84,20 @@ class PostgresUserRepository implements UserRepositoryInterface
 
     public function findByRole(string $role, int $limit = 50, int $offset = 0): array
     {
-        $stmt = $this->pdo->prepare('
+        // Map role to database columns
+        $condition = match ($role) {
+            'admin' => 'is_superuser = true',
+            'staff' => 'is_staff = true AND is_superuser = false',
+            'customer' => 'is_staff = false AND is_superuser = false',
+            default => 'is_staff = false AND is_superuser = false'
+        };
+
+        $stmt = $this->pdo->prepare("
             SELECT * FROM users 
-            WHERE role = :role 
+            WHERE {$condition}
             ORDER BY created_at DESC 
             LIMIT :limit OFFSET :offset
-        ');
-        $stmt->bindValue(':role', $role);
+        ");
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
@@ -144,13 +151,18 @@ class PostgresUserRepository implements UserRepositoryInterface
     {
         $id = $this->generateUuid();
 
+        // Determine is_staff and is_superuser from role
+        $role = $user->getRole();
+        $isStaff = in_array($role, ['admin', 'staff']);
+        $isSuperuser = $role === 'admin';
+
         $stmt = $this->pdo->prepare('
             INSERT INTO users (
                 id, username, email, password_hash, first_name, last_name, 
-                phone, role, email_verified, is_active, created_at, updated_at
+                phone, is_active, is_staff, is_superuser, created_at, updated_at
             ) VALUES (
                 :id, :username, :email, :password_hash, :first_name, :last_name,
-                :phone, :role, :email_verified, :is_active, :created_at, :updated_at
+                :phone, :is_active, :is_staff, :is_superuser, :created_at, :updated_at
             )
         ');
 
@@ -162,9 +174,9 @@ class PostgresUserRepository implements UserRepositoryInterface
             'first_name' => $user->getFirstName(),
             'last_name' => $user->getLastName(),
             'phone' => $user->getPhone(),
-            'role' => $user->getRole(),
-            'email_verified' => $user->isEmailVerified() ? 'true' : 'false',
             'is_active' => $user->isActive() ? 'true' : 'false',
+            'is_staff' => $isStaff ? 'true' : 'false',
+            'is_superuser' => $isSuperuser ? 'true' : 'false',
             'created_at' => $user->getCreatedAt()->format('Y-m-d H:i:s'),
             'updated_at' => $user->getUpdatedAt()->format('Y-m-d H:i:s')
         ]);
@@ -174,6 +186,11 @@ class PostgresUserRepository implements UserRepositoryInterface
 
     private function update(User $user): void
     {
+        // Determine is_staff and is_superuser from role
+        $role = $user->getRole();
+        $isStaff = in_array($role, ['admin', 'staff']);
+        $isSuperuser = $role === 'admin';
+
         $stmt = $this->pdo->prepare('
             UPDATE users SET 
                 username = :username,
@@ -182,11 +199,10 @@ class PostgresUserRepository implements UserRepositoryInterface
                 first_name = :first_name,
                 last_name = :last_name,
                 phone = :phone,
-                role = :role,
-                email_verified = :email_verified,
                 is_active = :is_active,
-                updated_at = :updated_at,
-                last_login = :last_login
+                is_staff = :is_staff,
+                is_superuser = :is_superuser,
+                updated_at = :updated_at
             WHERE id = :id
         ');
 
@@ -198,11 +214,10 @@ class PostgresUserRepository implements UserRepositoryInterface
             'first_name' => $user->getFirstName(),
             'last_name' => $user->getLastName(),
             'phone' => $user->getPhone(),
-            'role' => $user->getRole(),
-            'email_verified' => $user->isEmailVerified() ? 'true' : 'false',
             'is_active' => $user->isActive() ? 'true' : 'false',
-            'updated_at' => $user->getUpdatedAt()->format('Y-m-d H:i:s'),
-            'last_login' => $user->getLastLogin()?->format('Y-m-d H:i:s')
+            'is_staff' => $isStaff ? 'true' : 'false',
+            'is_superuser' => $isSuperuser ? 'true' : 'false',
+            'updated_at' => $user->getUpdatedAt()->format('Y-m-d H:i:s')
         ]);
     }
 
@@ -218,11 +233,16 @@ class PostgresUserRepository implements UserRepositoryInterface
         );
 
         $user->setId($data['id']);
-        $user->setRole($data['role']);
 
-        if ($data['email_verified']) {
-            $user->verifyEmail();
+        // Determine role from is_staff and is_superuser
+        if ($data['is_superuser']) {
+            $role = 'admin';
+        } elseif ($data['is_staff']) {
+            $role = 'staff';
+        } else {
+            $role = 'customer';
         }
+        $user->setRole($role);
 
         if (!$data['is_active']) {
             $user->deactivate();
@@ -233,7 +253,7 @@ class PostgresUserRepository implements UserRepositoryInterface
 
     private function generateUuid(): string
     {
-        $stmt = $this->pdo->query('SELECT uuid_generate_v4()');
+        $stmt = $this->pdo->query('SELECT gen_random_uuid()');
         return $stmt->fetchColumn();
     }
 }

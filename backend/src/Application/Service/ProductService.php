@@ -75,6 +75,21 @@ class ProductService
             $product->deactivate();
         }
 
+        // Set images
+        if (isset($data['images'])) {
+            $imageUrls = [];
+            if (is_array($data['images'])) {
+                foreach ($data['images'] as $image) {
+                    if (is_string($image)) {
+                        $imageUrls[] = $image;
+                    } elseif (isset($image['url'])) {
+                        $imageUrls[] = $image['url'];
+                    }
+                }
+            }
+            $product->setImages($imageUrls);
+        }
+
         $this->productRepository->save($product);
 
         return $product;
@@ -132,6 +147,21 @@ class ProductService
             } else {
                 $product->deactivate();
             }
+        }
+
+        // Update images
+        if (isset($data['images'])) {
+            $imageUrls = [];
+            if (is_array($data['images'])) {
+                foreach ($data['images'] as $image) {
+                    if (is_string($image)) {
+                        $imageUrls[] = $image;
+                    } elseif (isset($image['url'])) {
+                        $imageUrls[] = $image['url'];
+                    }
+                }
+            }
+            $product->setImages($imageUrls);
         }
 
         $this->productRepository->save($product);
@@ -213,11 +243,54 @@ class ProductService
 
     public function getProductStats(): array
     {
-        return [
-            'total_products' => $this->productRepository->countAll(),
-            'active_products' => $this->productRepository->countActive(),
-            'low_stock_count' => count($this->productRepository->findLowStock())
-        ];
+        try {
+            $totalProducts = $this->productRepository->countAll();
+            $activeProducts = $this->productRepository->countActive();
+
+            // Calculate out of stock and total value using simpler approach
+            $allProducts = $this->productRepository->findAll(100, 0); // Limit to 100 products
+
+            $totalValue = 0;
+            $outOfStock = 0;
+
+            foreach ($allProducts as $product) {
+                $price = $product->getPrice() ?? 0;
+                $quantity = $product->getStockQuantity() ?? 0;
+
+                $totalValue += $price * $quantity;
+
+                if ($quantity === 0) {
+                    $outOfStock++;
+                }
+            }
+
+            // Get low stock count more safely
+            $lowStockCount = 0;
+            try {
+                $lowStockProducts = $this->productRepository->findLowStock();
+                $lowStockCount = count($lowStockProducts);
+            } catch (\Exception $e) {
+                // If low stock query fails, use default value
+                $lowStockCount = 0;
+            }
+
+            return [
+                'total_products' => $totalProducts,
+                'active_products' => $activeProducts,
+                'out_of_stock' => $outOfStock,
+                'low_stock' => $lowStockCount,
+                'total_value' => round($totalValue, 2)
+            ];
+        } catch (\Exception $e) {
+            // Return safe defaults if anything fails
+            return [
+                'total_products' => 0,
+                'active_products' => 0,
+                'out_of_stock' => 0,
+                'low_stock' => 0,
+                'total_value' => 0
+            ];
+        }
     }
 
     private function validateProductData(array $data): void
@@ -286,6 +359,22 @@ class ProductService
 
     private function formatProduct(Product $product): array
     {
+        $categoryData = null;
+
+        // If product has category info, format it
+        if ($product->getCategoryId() && $product->getCategoryName()) {
+            $categoryData = [
+                'id' => $product->getCategoryId(),
+                'name' => $product->getCategoryName(),
+                'slug' => $product->getCategorySlug()
+            ];
+        }
+
+        // Debug logging
+        error_log("Formatting product: " . $product->getName() .
+            " | Category ID: " . ($product->getCategoryId() ?? 'null') .
+            " | Category Name: " . ($product->getCategoryName() ?? 'null'));
+
         return [
             'id' => $product->getId(),
             'name' => $product->getName(),
@@ -305,7 +394,9 @@ class ProductService
             'is_active' => $product->isActive(),
             'is_featured' => $product->isFeatured(),
             'category_id' => $product->getCategoryId(),
+            'category' => $categoryData,
             'brand' => $product->getBrand(),
+            'images' => $product->getImages(),
             'created_at' => $product->getCreatedAt()->format('Y-m-d H:i:s'),
             'updated_at' => $product->getUpdatedAt()->format('Y-m-d H:i:s'),
             'is_in_stock' => $product->isInStock(),
