@@ -192,6 +192,14 @@ try {
                 break;
 
             // Admin product endpoints
+            case $route === '/admin/products/stats' && $requestMethod === 'GET':
+                $adminProductController->stats();
+                break;
+
+            case $route === '/admin/products/low-stock' && $requestMethod === 'GET':
+                $adminProductController->lowStock();
+                break;
+
             case $route === '/admin/products' && $requestMethod === 'GET':
                 $adminProductController->index();
                 break;
@@ -210,14 +218,6 @@ try {
 
             case preg_match('/^\/admin\/products\/([^\/]+)$/', $route, $matches) && $requestMethod === 'DELETE':
                 $adminProductController->destroy($matches[1]);
-                break;
-
-            case $route === '/admin/products/stats' && $requestMethod === 'GET':
-                $adminProductController->stats();
-                break;
-
-            case $route === '/admin/products/low-stock' && $requestMethod === 'GET':
-                $adminProductController->lowStock();
                 break;
 
             case $route === '/admin/orders' && $requestMethod === 'GET':

@@ -36,7 +36,16 @@ class ProductController
                 $filters['search'] = $search;
             }
             if (!empty($category)) {
-                $filters['category_id'] = $category;
+                // Check if category is a slug or ID
+                if (is_numeric($category)) {
+                    $filters['category_id'] = $category;
+                } else {
+                    // Find category by slug
+                    $categoryObj = $this->categoryService->getCategoryBySlug($category);
+                    if ($categoryObj) {
+                        $filters['category_id'] = $categoryObj['id'];
+                    }
+                }
             }
             if (!empty($brand)) {
                 $filters['brand'] = $brand;

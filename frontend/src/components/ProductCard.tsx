@@ -24,9 +24,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onAddToCart,
 }) => {
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ru-RU', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'RUB',
+      currency: 'USD',
     }).format(price);
   };
 

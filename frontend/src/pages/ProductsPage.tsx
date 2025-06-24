@@ -90,9 +90,10 @@ const ProductsPage: React.FC = () => {
   const loadCategories = useCallback(async () => {
     try {
       const response = await publicAPI.getCategories();
-      setCategories(response.data);
+      setCategories(response.data?.data || response.data || []);
     } catch (err) {
       console.error('Error loading categories:', err);
+      setCategories([]);
     }
   }, []);
 
@@ -140,9 +141,9 @@ const ProductsPage: React.FC = () => {
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ru-RU', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'RUB',
+      currency: 'USD',
     }).format(price);
   };
 

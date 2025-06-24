@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Container,
   Typography,
@@ -9,12 +9,19 @@ import {
   Paper,
   CircularProgress,
 } from '@mui/material';
+import {
+  Computer as ElectronicsIcon,
+  Checkroom as ClothingIcon,
+  MenuBook as BooksIcon,
+  Home as HomeIcon,
+  SportsBasketball as SportsIcon,
+  Category as DefaultCategoryIcon,
+} from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { publicAPI, Product, Category } from '../lib/api';
 import ProductCard from '../components/ProductCard';
 
 const HomePage: React.FC = () => {
-  const [apiStatus, setApiStatus] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -27,7 +34,6 @@ const HomePage: React.FC = () => {
         
         // Test API connection
         await publicAPI.getHealth();
-        setApiStatus('API Connected Successfully!');
         
         // Load recommended products and categories
         const [productsResponse, categoriesResponse] = await Promise.all([
@@ -56,6 +62,23 @@ const HomePage: React.FC = () => {
     alert(`Product "${product.name}" added to cart!`);
   };
 
+  const getCategoryIcon = (categorySlug: string) => {
+    switch (categorySlug) {
+      case 'electronics':
+        return <ElectronicsIcon sx={{ fontSize: 40, mb: 1 }} />;
+      case 'clothing':
+        return <ClothingIcon sx={{ fontSize: 40, mb: 1 }} />;
+      case 'books':
+        return <BooksIcon sx={{ fontSize: 40, mb: 1 }} />;
+      case 'home-garden':
+        return <HomeIcon sx={{ fontSize: 40, mb: 1 }} />;
+      case 'sports':
+        return <SportsIcon sx={{ fontSize: 40, mb: 1 }} />;
+      default:
+        return <DefaultCategoryIcon sx={{ fontSize: 40, mb: 1 }} />;
+    }
+  };
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Hero Section */}
@@ -78,12 +101,6 @@ const HomePage: React.FC = () => {
           Discover amazing products at unbeatable prices
         </Typography>
         
-        {apiStatus && (
-          <Alert severity="success" sx={{ mb: 2, maxWidth: 600, mx: 'auto' }}>
-            {apiStatus}
-          </Alert>
-        )}
-        
         {error && (
           <Alert severity="error" sx={{ mb: 2, maxWidth: 600, mx: 'auto' }}>
             {error}
@@ -96,18 +113,9 @@ const HomePage: React.FC = () => {
             size="large"
             component={Link}
             to="/products"
-            sx={{ mr: 2, px: 4, py: 1.5 }}
-          >
-            Shop Now
-          </Button>
-          <Button
-            variant="outlined"
-            size="large"
-            component={Link}
-            to="/auth"
             sx={{ px: 4, py: 1.5 }}
           >
-            Sign Up
+            Shop Now
           </Button>
         </Box>
       </Box>
@@ -122,25 +130,34 @@ const HomePage: React.FC = () => {
             <CircularProgress />
           </Box>
         ) : (
-          <Grid container spacing={2} justifyContent="center">
+          <Grid container spacing={3} justifyContent="center">
             {categories.slice(0, 5).map((category) => (
               <Grid item xs={6} sm={4} md={2} key={category.id}>
                 <Paper
                   component={Link}
                   to={`/products?category=${category.slug}`}
                   sx={{
-                    p: 2,
+                    p: 3,
                     textAlign: 'center',
                     textDecoration: 'none',
                     color: 'inherit',
-                    transition: 'all 0.2s ease-in-out',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    minHeight: 120,
+                    transition: 'all 0.3s ease-in-out',
                     '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: 3,
+                      transform: 'translateY(-8px)',
+                      boxShadow: 6,
+                      '& .MuiSvgIcon-root': {
+                        transform: 'scale(1.1)',
+                        color: 'primary.main',
+                      },
                     },
                   }}
                 >
-                  <Typography variant="h6" component="div">
+                  {getCategoryIcon(category.slug)}
+                  <Typography variant="h6" component="div" sx={{ fontWeight: 'medium' }}>
                     {category.name}
                   </Typography>
                 </Paper>
