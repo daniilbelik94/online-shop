@@ -104,10 +104,10 @@ const AdminDashboard: React.FC = () => {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Button 
                   variant="contained" 
-                  onClick={() => navigate('/admin/products/new')}
+                  onClick={() => navigate('/admin/products/manage')}
                   startIcon={<Inventory />}
                 >
-                  Add New Product
+                  Manage Products
                 </Button>
                 <Button 
                   variant="outlined" 
@@ -121,7 +121,7 @@ const AdminDashboard: React.FC = () => {
                   onClick={() => navigate('/admin/orders')}
                   startIcon={<ShoppingCart />}
                 >
-                  View Recent Orders
+                  View Orders
                 </Button>
               </Box>
             </Paper>

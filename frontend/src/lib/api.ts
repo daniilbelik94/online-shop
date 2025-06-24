@@ -2,6 +2,53 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { store } from '../store';
 import { logout } from '../store/slices/authSlice';
 
+// Types
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  parent_id?: number;
+  created_at: string;
+  updated_at: string;
+  children?: Category[];
+}
+
+export interface Product {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  price: number;
+  category_id: number;
+  category?: Category;
+  brand?: string;
+  sku: string;
+  stock_quantity: number;
+  image_url?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductsResponse {
+  data: Product[];
+  pagination: {
+    current_page: number;
+    per_page: number;
+    total: number;
+    total_pages: number;
+  };
+}
+
+export interface ProductStats {
+  total_products: number;
+  active_products: number;
+  out_of_stock: number;
+  low_stock: number;
+  total_value: number;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
 // Create axios instance
@@ -80,16 +127,49 @@ export const adminAPI = {
     is_staff?: boolean;
   }) => api.put(`/admin/users/${id}`, data),
   
+  // Product management
   getProducts: (params?: {
     page?: number;
     limit?: number;
     search?: string;
     category?: string;
+    brand?: string;
+    min_price?: number;
+    max_price?: number;
+    sort?: string;
   }) => api.get('/admin/products', { params }),
   
-  createProduct: (data: any) => api.post('/admin/products', data),
+  createProduct: (data: {
+    name: string;
+    description: string;
+    price: number;
+    category_id: number;
+    brand?: string;
+    stock_quantity: number;
+    sku?: string;
+    image_url?: string;
+  }) => api.post('/admin/products', data),
   
-  updateProduct: (id: string, data: any) => api.put(`/admin/products/${id}`, data),
+  updateProduct: (id: string, data: {
+    name?: string;
+    description?: string;
+    price?: number;
+    category_id?: number;
+    brand?: string;
+    stock_quantity?: number;
+    sku?: string;
+    image_url?: string;
+  }) => api.put(`/admin/products/${id}`, data),
+  
+  deleteProduct: (id: string) => api.delete(`/admin/products/${id}`),
+  
+  getProductStats: () => api.get('/admin/products/stats'),
+  
+  getLowStockProducts: (threshold?: number) => 
+    api.get('/admin/products/low-stock', { params: { threshold } }),
+  
+  // Categories (use public endpoint for now)
+  getCategories: () => api.get('/categories'),
   
   getOrders: (params?: {
     page?: number;
@@ -100,15 +180,33 @@ export const adminAPI = {
 };
 
 export const publicAPI = {
+  // Product catalog
   getProducts: (params?: {
     page?: number;
     limit?: number;
     search?: string;
     category?: string;
+    brand?: string;
+    min_price?: number;
+    max_price?: number;
     sort?: string;
   }) => api.get('/products', { params }),
   
+  searchProducts: (query: string, params?: {
+    page?: number;
+    limit?: number;
+  }) => api.get('/products/search', { params: { q: query, ...params } }),
+  
+  getRecommendedProducts: (limit?: number) => 
+    api.get('/products/recommended', { params: { limit } }),
+  
+  getFeaturedProducts: (limit?: number) => 
+    api.get('/products/featured', { params: { limit } }),
+  
   getProduct: (slug: string) => api.get(`/products/${slug}`),
+  
+  // Categories
+  getCategories: () => api.get('/categories'),
   
   getHealth: () => api.get('/health'),
 };

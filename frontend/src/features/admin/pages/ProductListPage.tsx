@@ -40,7 +40,7 @@ const ProductListPage: React.FC = () => {
   });
 
   const handleEditProduct = (productId: string) => {
-    navigate(`/admin/products/${productId}/edit`);
+    navigate(`/admin/products/manage?edit=${productId}`);
   };
 
   const columns: GridColDef[] = [
@@ -133,7 +133,7 @@ const ProductListPage: React.FC = () => {
           <Button
             variant="contained"
             startIcon={<Add />}
-            onClick={() => navigate('/admin/products/new')}
+            onClick={() => navigate('/admin/products/manage')}
           >
             Add Product
           </Button>

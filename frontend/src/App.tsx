@@ -22,6 +22,7 @@ import AdminRoute from './components/AdminRoute';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
 import UserListPage from './features/admin/pages/UserListPage';
 import ProductListPage from './features/admin/pages/ProductListPage';
+import ProductManagePage from './features/admin/pages/ProductManagePage';
 import OrderListPage from './features/admin/pages/OrderListPage';
 
 // Create a client
@@ -74,15 +75,16 @@ function App() {
                     <ProductListPage />
                   </AdminRoute>
                 } />
+                <Route path="/admin/products/manage" element={
+                  <AdminRoute>
+                    <ProductManagePage />
+                  </AdminRoute>
+                } />
                 <Route path="/admin/orders" element={
                   <AdminRoute>
                     <OrderListPage />
                   </AdminRoute>
                 } />
-                
-                {/* Auth Routes - No Header/Footer */}
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
                 
                 {/* Public Routes - With Header/Footer */}
                 <Route path="/*" element={
@@ -92,10 +94,12 @@ function App() {
                       <Routes>
                         <Route path="/" element={<HomePage />} />
                         <Route path="/products" element={<ProductsPage />} />
-                        <Route path="/products/:id" element={<ProductDetailPage />} />
+                        <Route path="/products/:slug" element={<ProductDetailPage />} />
                         <Route path="/cart" element={<CartPage />} />
                         <Route path="/checkout" element={<CheckoutPage />} />
                         <Route path="/auth" element={<AuthPage />} />
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/register" element={<RegisterPage />} />
                       </Routes>
                     </main>
                     <Footer />
