@@ -1,15 +1,16 @@
-# Simple backend-only Dockerfile for Railway
+# Simple backend-only Dockerfile for Railway - Memory optimized
 FROM php:8.3-apache
 
-# Install essential dependencies including git and zip
-RUN apt-get update && apt-get install -y \
+# Install essential dependencies in smaller chunks
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
-    git \
-    zip \
-    unzip \
-    && docker-php-ext-install pdo pdo_pgsql \
-    && a2enmod rewrite \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
+RUN docker-php-ext-install pdo pdo_pgsql
+
+# Enable Apache modules
+RUN a2enmod rewrite headers
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -19,17 +20,27 @@ WORKDIR /var/www/html
 # Copy backend
 COPY backend/ .
 
-# Install dependencies
-RUN composer install --no-dev --optimize-autoloader
+# Install dependencies without dev packages
+RUN composer install --no-dev --optimize-autoloader --no-cache
 
 # Set permissions
-RUN mkdir -p public/uploads && chmod 755 public/uploads
+RUN mkdir -p public/uploads && chmod 755 public/uploads && \
+    chown -R www-data:www-data /var/www/html
 
 # Configure Apache
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
 
-# Simple .htaccess
-RUN echo 'RewriteEngine On\nRewriteCond %{REQUEST_FILENAME} !-f\nRewriteCond %{REQUEST_FILENAME} !-d\nRewriteRule ^(.*)$ index.php [QSA,L]' > /var/www/html/public/.htaccess
+# Create .htaccess with CORS support
+RUN echo 'RewriteEngine On\n\
+RewriteCond %{REQUEST_FILENAME} !-f\n\
+RewriteCond %{REQUEST_FILENAME} !-d\n\
+RewriteRule ^(.*)$ index.php [QSA,L]\n\
+\n\
+# CORS Headers\n\
+Header always set Access-Control-Allow-Origin "*"\n\
+Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"\n\
+Header always set Access-Control-Allow-Headers "Content-Type, Authorization"\n\
+Header always set Access-Control-Max-Age "3600"' > /var/www/html/public/.htaccess
 
 EXPOSE 80
 CMD ["apache2-foreground"] 
