@@ -51,12 +51,19 @@ const HomePage: React.FC = () => {
           publicAPI.getCategories(),
         ]);
         
-        setRecommendedProducts(productsResponse.data.data || productsResponse.data);
-        setCategories(categoriesResponse.data.data || categoriesResponse.data || []);
+        // Safe array handling - ensure we always get an array
+        const productsData = productsResponse.data?.data || productsResponse.data || [];
+        const categoriesData = categoriesResponse.data?.data || categoriesResponse.data || [];
+        
+        setRecommendedProducts(Array.isArray(productsData) ? productsData : []);
+        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
         
       } catch (err) {
         setError('Failed to load data. Please ensure the backend is running.');
         console.error('API Error:', err);
+        // Set empty arrays on error to prevent crashes
+        setRecommendedProducts([]);
+        setCategories([]);
       } finally {
         setLoading(false);
       }

@@ -87,17 +87,30 @@ const ProductsPage: React.FC = () => {
       const response = await publicAPI.getProducts(params);
       const data: ProductsResponse = response.data;
 
-      setProducts(data.data);
-      setPagination(data.pagination);
+      // Safe array handling - ensure we always get an array
+      const productsData = data?.data || [];
+      const paginationData = data?.pagination || {
+        current_page: 1,
+        per_page: 12,
+        total: 0,
+        total_pages: 0,
+      };
+
+      setProducts(Array.isArray(productsData) ? productsData : []);
+      setPagination(paginationData);
 
       // Extract unique brands from products
-      const brandsSet = new Set(data.data.map(p => p.brand).filter(Boolean));
+      const validProducts = Array.isArray(productsData) ? productsData : [];
+      const brandsSet = new Set(validProducts.map(p => p.brand).filter(Boolean));
       const brands = Array.from(brandsSet) as string[];
       setAvailableBrands(brands);
 
     } catch (err) {
       setError('Error loading products');
       console.error('Error loading products:', err);
+      // Set empty arrays on error to prevent crashes
+      setProducts([]);
+      setAvailableBrands([]);
     } finally {
       setLoading(false);
     }
@@ -106,7 +119,8 @@ const ProductsPage: React.FC = () => {
   const loadCategories = useCallback(async () => {
     try {
       const response = await publicAPI.getCategories();
-      setCategories(response.data?.data || response.data || []);
+      const categoriesData = response.data?.data || response.data || [];
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (err) {
       console.error('Error loading categories:', err);
       setCategories([]);

@@ -28,8 +28,9 @@ const ProductSlider: React.FC<ProductSliderProps> = ({
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const isLaptop = useMediaQuery(theme.breakpoints.down('lg'));
 
-  // Limit products to maxProducts
-  const displayProducts = products.slice(0, maxProducts);
+  // Safe array handling - ensure products is an array before using slice
+  const safeProducts = Array.isArray(products) ? products : [];
+  const displayProducts = safeProducts.slice(0, maxProducts);
 
   // Responsive breakpoints for slides per view
   const getSlidesPerView = () => {

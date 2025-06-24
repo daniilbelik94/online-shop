@@ -123,7 +123,10 @@ const ProductManagePage: React.FC = () => {
       
       const data = response.data;
       console.log('Products response:', data); // Debug log
-      let filteredProducts = data.data || data;
+      
+      // Safe array handling - ensure we always get an array
+      const productsData = data?.data || data || [];
+      let filteredProducts = Array.isArray(productsData) ? productsData : [];
       
       // Apply client-side filtering for status since API might not support it
       if (filterStatus) {
@@ -142,10 +145,12 @@ const ProductManagePage: React.FC = () => {
       }
       
       setProducts(filteredProducts);
-      setTotalProducts(data.pagination?.total || filteredProducts.length);
+      setTotalProducts(data?.pagination?.total || filteredProducts.length);
     } catch (err) {
       setError('Error loading products');
       console.error('Error loading products:', err);
+      // Set empty arrays on error to prevent crashes
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -156,7 +161,8 @@ const ProductManagePage: React.FC = () => {
       // Use public API directly since admin categories endpoint doesn't exist
       const response = await publicAPI.getCategories();
       console.log('Categories response:', response.data); // Debug log
-      setCategories(response.data?.data || []);
+      const categoriesData = response.data?.data || [];
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (err) {
       console.error('Error loading categories:', err);
       setCategories([]);
