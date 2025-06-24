@@ -1,0 +1,131 @@
+<?php
+
+namespace App\Presentation\Controller;
+
+use App\Application\Service\UserService;
+
+class UserController
+{
+    private UserService $userService;
+
+    public function __construct(UserService $userService)
+    {
+        $this->userService = $userService;
+    }
+
+    public function register(): void
+    {
+        header('Content-Type: application/json');
+
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+
+            if (!$this->validateRegistrationInput($input)) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Invalid input data']);
+                return;
+            }
+
+            $user = $this->userService->registerUser(
+                $input['username'],
+                $input['email'],
+                $input['password'],
+                $input['first_name'],
+                $input['last_name'],
+                $input['phone'] ?? null
+            );
+
+            http_response_code(201);
+            echo json_encode($this->serializeUser($user));
+        } catch (\InvalidArgumentException $e) {
+            if (str_contains($e->getMessage(), 'already exists')) {
+                http_response_code(409);
+            } else {
+                http_response_code(400);
+            }
+            echo json_encode(['error' => $e->getMessage()]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Internal server error']);
+        }
+    }
+
+    public function getCurrentUser(array $currentUser): void
+    {
+        header('Content-Type: application/json');
+
+        try {
+            $user = $this->userService->getUserById($currentUser['user_id']);
+
+            if (!$user) {
+                http_response_code(404);
+                echo json_encode(['error' => 'User not found']);
+                return;
+            }
+
+            http_response_code(200);
+            echo json_encode($this->serializeUser($user));
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Internal server error']);
+        }
+    }
+
+    public function updateCurrentUser(array $currentUser): void
+    {
+        header('Content-Type: application/json');
+
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+
+            if (!$input) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Invalid input data']);
+                return;
+            }
+
+            $user = $this->userService->updateUserProfile(
+                $currentUser['user_id'],
+                $input['first_name'] ?? '',
+                $input['last_name'] ?? '',
+                $input['phone'] ?? null
+            );
+
+            http_response_code(200);
+            echo json_encode($this->serializeUser($user));
+        } catch (\InvalidArgumentException $e) {
+            http_response_code(400);
+            echo json_encode(['error' => $e->getMessage()]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Internal server error']);
+        }
+    }
+
+    private function validateRegistrationInput(?array $input): bool
+    {
+        return $input &&
+            isset($input['username']) && !empty($input['username']) &&
+            isset($input['email']) && !empty($input['email']) &&
+            isset($input['password']) && !empty($input['password']) &&
+            isset($input['first_name']) && !empty($input['first_name']) &&
+            isset($input['last_name']) && !empty($input['last_name']);
+    }
+
+    private function serializeUser($user): array
+    {
+        return [
+            'id' => $user->getId(),
+            'username' => $user->getUsername(),
+            'email' => $user->getEmail(),
+            'first_name' => $user->getFirstName(),
+            'last_name' => $user->getLastName(),
+            'phone' => $user->getPhone(),
+            'role' => $user->getRole(),
+            'email_verified' => $user->isEmailVerified(),
+            'is_active' => $user->isActive(),
+            'created_at' => $user->getCreatedAt()->format('Y-m-d\TH:i:s\Z'),
+            'updated_at' => $user->getUpdatedAt()->format('Y-m-d\TH:i:s\Z')
+        ];
+    }
+}
