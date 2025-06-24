@@ -45,7 +45,7 @@ interface ProductFormData {
   name: string;
   description: string;
   price: number;
-  category_id: number;
+  category_id: string | number;
   brand: string;
   stock_quantity: number;
   sku: string;
@@ -156,10 +156,10 @@ const ProductManagePage: React.FC = () => {
       setFormData({
         name: product.name,
         description: product.description,
-        price: product.price,
-        category_id: product.category_id,
+        price: product.price || 0,
+        category_id: product.category_id || '',
         brand: product.brand || '',
-        stock_quantity: product.stock_quantity,
+        stock_quantity: product.stock_quantity || 0,
         sku: product.sku,
         image_url: product.image_url || '',
       });
@@ -169,7 +169,7 @@ const ProductManagePage: React.FC = () => {
         name: '',
         description: '',
         price: 0,
-        category_id: 0,
+        category_id: '',
         brand: '',
         stock_quantity: 0,
         sku: '',
@@ -191,7 +191,7 @@ const ProductManagePage: React.FC = () => {
     
     if (!formData.name.trim()) errors.name = 'Name is required';
     if (!formData.description.trim()) errors.description = 'Description is required';
-    if (formData.price <= 0) errors.price = 'Price must be greater than 0';
+    if (!formData.price || formData.price <= 0) errors.price = 'Price must be greater than 0';
     if (!formData.category_id) errors.category_id = 'Please select a category';
     if (formData.stock_quantity < 0) errors.stock_quantity = 'Quantity cannot be negative';
     
@@ -205,10 +205,18 @@ const ProductManagePage: React.FC = () => {
     try {
       setSubmitting(true);
       
+      // Prepare form data with proper types
+      const submitData = {
+        ...formData,
+        category_id: Number(formData.category_id),
+        price: Number(formData.price),
+        stock_quantity: Number(formData.stock_quantity),
+      };
+      
       if (editingProduct) {
-        await adminAPI.updateProduct(editingProduct.id.toString(), formData);
+        await adminAPI.updateProduct(editingProduct.id.toString(), submitData);
       } else {
-        await adminAPI.createProduct(formData);
+        await adminAPI.createProduct(submitData);
       }
       
       handleCloseDialog();
@@ -459,9 +467,9 @@ const ProductManagePage: React.FC = () => {
               <FormControl fullWidth error={!!formErrors.category_id}>
                 <InputLabel>Категория</InputLabel>
                 <Select
-                  value={formData.category_id}
+                  value={formData.category_id || ''}
                   label="Категория"
-                  onChange={(e) => setFormData({ ...formData, category_id: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                 >
                   {categories.map((category) => (
                     <MenuItem key={category.id} value={category.id}>
@@ -476,10 +484,14 @@ const ProductManagePage: React.FC = () => {
                 fullWidth
                 label="Цена"
                 type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                value={formData.price || ''}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? 0 : Number(e.target.value);
+                  setFormData({ ...formData, price: isNaN(value) ? 0 : value });
+                }}
                 error={!!formErrors.price}
                 helperText={formErrors.price}
+                inputProps={{ min: 0, step: 0.01 }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -487,10 +499,14 @@ const ProductManagePage: React.FC = () => {
                 fullWidth
                 label="Количество на складе"
                 type="number"
-                value={formData.stock_quantity}
-                onChange={(e) => setFormData({ ...formData, stock_quantity: Number(e.target.value) })}
+                value={formData.stock_quantity || ''}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? 0 : Number(e.target.value);
+                  setFormData({ ...formData, stock_quantity: isNaN(value) ? 0 : value });
+                }}
                 error={!!formErrors.stock_quantity}
                 helperText={formErrors.stock_quantity}
+                inputProps={{ min: 0, step: 1 }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
