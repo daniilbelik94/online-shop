@@ -37,4 +37,8 @@ interface ProductRepositoryInterface
     public function skuExists(string $sku): bool;
 
     public function slugExists(string $slug): bool;
+
+    public function findAdvanced(array $filters = [], string $sort = 'created_at_desc', int $limit = 50, int $offset = 0): array;
+
+    public function countAdvanced(array $filters = []): int;
 }

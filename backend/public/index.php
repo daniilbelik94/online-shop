@@ -46,19 +46,27 @@ try {
 
     // Dependency injection setup
     $userRepository = new \App\Infrastructure\Persistence\Postgres\PostgresUserRepository($pdo);
+    $productRepository = new \App\Infrastructure\Persistence\Postgres\PostgresProductRepository($pdo);
+    $categoryRepository = new \App\Infrastructure\Persistence\Postgres\PostgresCategoryRepository($pdo);
+
     $userService = new \App\Application\Service\UserService($userRepository);
+    $productService = new \App\Application\Service\ProductService($productRepository);
+    $categoryService = new \App\Application\Service\CategoryService($categoryRepository);
+
     $authService = new \App\Application\Service\AuthService(
         $userService,
         $_ENV['JWT_SECRET'] ?? 'default-secret-key',
         (int)($_ENV['JWT_EXPIRATION'] ?? 3600)
     );
 
+    // Middleware
+    $authMiddleware = new \App\Presentation\Middleware\AuthMiddleware($authService);
+
     // Controllers
     $authController = new \App\Presentation\Controller\AuthController($authService);
     $userController = new \App\Presentation\Controller\UserController($userService);
-
-    // Middleware
-    $authMiddleware = new \App\Presentation\Middleware\AuthMiddleware($authService);
+    $productController = new \App\Presentation\Controller\ProductController($productService, $categoryService);
+    $adminProductController = new \App\Presentation\Controller\AdminProductController($productService, $authMiddleware);
 
     // Basic routing
     $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
@@ -183,14 +191,33 @@ try {
                 }
                 break;
 
+            // Admin product endpoints
             case $route === '/admin/products' && $requestMethod === 'GET':
-                $currentUser = $authMiddleware->handle('is_staff');
-                if ($currentUser) {
-                    echo json_encode([
-                        'data' => [],
-                        'message' => 'Product management - Coming soon'
-                    ]);
-                }
+                $adminProductController->index();
+                break;
+
+            case $route === '/admin/products' && $requestMethod === 'POST':
+                $adminProductController->store();
+                break;
+
+            case preg_match('/^\/admin\/products\/([^\/]+)$/', $route, $matches) && $requestMethod === 'GET':
+                $adminProductController->show($matches[1]);
+                break;
+
+            case preg_match('/^\/admin\/products\/([^\/]+)$/', $route, $matches) && $requestMethod === 'PUT':
+                $adminProductController->update($matches[1]);
+                break;
+
+            case preg_match('/^\/admin\/products\/([^\/]+)$/', $route, $matches) && $requestMethod === 'DELETE':
+                $adminProductController->destroy($matches[1]);
+                break;
+
+            case $route === '/admin/products/stats' && $requestMethod === 'GET':
+                $adminProductController->stats();
+                break;
+
+            case $route === '/admin/products/low-stock' && $requestMethod === 'GET':
+                $adminProductController->lowStock();
                 break;
 
             case $route === '/admin/orders' && $requestMethod === 'GET':
@@ -203,27 +230,29 @@ try {
                 }
                 break;
 
-            // Product endpoints (public for now)
+            // Public product endpoints
             case $route === '/products' && $requestMethod === 'GET':
-                // TODO: Implement product listing
-                echo json_encode([
-                    'message' => 'Product listing',
-                    'data' => [],
-                    'pagination' => [
-                        'current_page' => 1,
-                        'total_pages' => 0,
-                        'total_items' => 0
-                    ]
-                ]);
+                $productController->index();
+                break;
+
+            case $route === '/products/search' && $requestMethod === 'GET':
+                $productController->search();
+                break;
+
+            case $route === '/products/recommended' && $requestMethod === 'GET':
+                $productController->recommended();
+                break;
+
+            case $route === '/products/featured' && $requestMethod === 'GET':
+                $productController->featured();
                 break;
 
             case preg_match('/^\/products\/([^\/]+)$/', $route, $matches) && $requestMethod === 'GET':
-                $slug = $matches[1];
-                // TODO: Implement product details
-                echo json_encode([
-                    'message' => "Product details for slug: {$slug}",
-                    'data' => null
-                ]);
+                $productController->show($matches[1]);
+                break;
+
+            case $route === '/categories' && $requestMethod === 'GET':
+                $productController->categories();
                 break;
 
             // Order endpoints
