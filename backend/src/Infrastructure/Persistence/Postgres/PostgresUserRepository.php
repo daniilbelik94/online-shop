@@ -234,17 +234,17 @@ class PostgresUserRepository implements UserRepositoryInterface
 
         $user->setId($data['id']);
 
-        // Determine role from is_staff and is_superuser
-        if ($data['is_superuser']) {
+        // Determine role from is_staff and is_superuser (with fallback)
+        if (isset($data['is_superuser']) && $data['is_superuser']) {
             $role = 'admin';
-        } elseif ($data['is_staff']) {
+        } elseif (isset($data['is_staff']) && $data['is_staff']) {
             $role = 'staff';
         } else {
             $role = 'customer';
         }
         $user->setRole($role);
 
-        if (!$data['is_active']) {
+        if (isset($data['is_active']) && !$data['is_active']) {
             $user->deactivate();
         }
 
