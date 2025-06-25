@@ -1,23 +1,5 @@
-export interface Order {
-  id: number;
-  order_number: string;
-  date: string;
-  status: string;
-  total: number;
-  items_count: number;
-}
-
-export interface UpdateProfileData {
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-}
-
-export interface ChangePasswordData {
-  current_password: string;
-  new_password: string;
-}
+import { api } from '../lib/api';
+import type { User, Order, UpdateProfileData, ChangePasswordData } from '../types';
 
 // User Profile API
 export const userProfileApi = {

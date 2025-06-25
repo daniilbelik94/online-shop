@@ -1,0 +1,49 @@
+# Lightweight Dockerfile for Railway deployment
+FROM php:8.3-apache
+
+# Install only essential dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    git \
+    curl \
+    && docker-php-ext-install pdo pdo_pgsql \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Enable Apache rewrite module
+RUN a2enmod rewrite headers
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy backend only
+COPY backend/ .
+
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader --no-scripts
+
+# Configure Apache
+RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+
+# Create simple .htaccess
+RUN echo "RewriteEngine On\n\
+RewriteCond %{REQUEST_FILENAME} !-f\n\
+RewriteCond %{REQUEST_FILENAME} !-d\n\
+RewriteRule ^(.*)$ index.php [QSA,L]\n\
+Header always set Access-Control-Allow-Origin \"*\"\n\
+Header always set Access-Control-Allow-Methods \"GET, POST, PUT, DELETE, OPTIONS\"\n\
+Header always set Access-Control-Allow-Headers \"Content-Type, Authorization\"" > /var/www/html/public/.htaccess
+
+# Set permissions
+RUN mkdir -p /var/www/html/public/uploads \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/public
+
+# Expose port
+EXPOSE 80
+
+# Start Apache
+CMD ["apache2-foreground"] 
