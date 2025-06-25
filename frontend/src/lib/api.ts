@@ -77,10 +77,10 @@ export interface Cart {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || (
-  // Use relative path for same-domain deployment (Railway)
+  // Use localhost for development, Railway for production
   window.location.hostname === 'localhost' 
     ? 'http://localhost:8080/api'
-    : '/api'
+    : 'https://online-shop-production-9724.up.railway.app/api'
 );
 
 // Create axios instance
