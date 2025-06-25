@@ -76,15 +76,15 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS
 }
 
 try {
-    // Database connection
+    // Database connection using config
     $dsn = sprintf(
         'pgsql:host=%s;port=%s;dbname=%s',
-        $_ENV['DB_HOST'] ?? 'db',
-        $_ENV['DB_PORT'] ?? '5432',
-        $_ENV['DB_NAME'] ?? $_ENV['DB_DATABASE'] ?? 'ecommerce'
+        $config['database']['host'],
+        $config['database']['port'],
+        $config['database']['name']
     );
 
-    $pdo = new PDO($dsn, $_ENV['DB_USERNAME'] ?? '', $_ENV['DB_PASSWORD'] ?? '', [
+    $pdo = new PDO($dsn, $config['database']['username'], $config['database']['password'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
@@ -101,8 +101,8 @@ try {
 
     $authService = new \App\Application\Service\AuthService(
         $userService,
-        $_ENV['JWT_SECRET'] ?? 'default-secret-key',
-        (int)($_ENV['JWT_EXPIRATION'] ?? 3600)
+        $config['app']['jwt_secret'],
+        $config['app']['jwt_expiration']
     );
 
     // Middleware
