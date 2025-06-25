@@ -64,7 +64,8 @@ if ($appEnv === 'production') {
 }
 
 // CORS headers (needed for local development, .htaccess handles production)
-if ($_ENV['APP_ENV'] !== 'production') {
+$appEnv = $_ENV['APP_ENV'] ?? 'development';
+if ($appEnv !== 'production') {
     // Local development - add CORS headers
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
@@ -104,8 +105,8 @@ try {
 
     $authService = new \App\Application\Service\AuthService(
         $userService,
-        $config['app']['jwt_secret'],
-        $config['app']['jwt_expiration']
+        $config['app']['jwt_secret'] ?? 'your-super-secret-jwt-key-here-make-it-long-and-random',
+        $config['app']['jwt_expiration'] ?? 3600
     );
 
     // Middleware
