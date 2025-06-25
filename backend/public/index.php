@@ -63,10 +63,20 @@ if ($appEnv === 'production') {
     }
 }
 
-// CORS headers are handled by .htaccess
+// CORS headers (needed for local development, .htaccess handles production)
+if ($_ENV['APP_ENV'] !== 'production') {
+    // Local development - add CORS headers
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+}
 header('Content-Type: application/json');
 
-// Handle preflight OPTIONS requests (handled by .htaccess rewrite rule)
+// Handle preflight OPTIONS requests
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 try {
     // Database connection using config
