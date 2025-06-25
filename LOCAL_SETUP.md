@@ -1,31 +1,31 @@
-# 🏠 Локальная разработка с Railway БД
+# 🏠 Lokale Entwicklung mit Railway Datenbank
 
-## Настройка локального окружения
+## Lokale Entwicklungsumgebung einrichten
 
-Ваше приложение теперь настроено для работы с базой данных Railway локально!
+Ihre Anwendung ist jetzt für die lokale Arbeit mit der Railway-Datenbank konfiguriert!
 
-### 🚀 Быстрый старт
+### 🚀 Schnellstart
 
-1. **Запуск backend API:**
+1. **Backend API starten:**
 
    ```bash
    cd backend/public
    php -S localhost:8000
    ```
 
-2. **Запуск frontend:**
+2. **Frontend starten:**
 
    ```bash
    cd frontend
    npm run dev
    ```
 
-3. **Тестирование API:**
-   Откройте в браузере: `http://localhost:8000/test-local-api.html`
+3. **API testen:**
+   Öffnen Sie im Browser: `http://localhost:8000/test-local-api.html`
 
-### 🗄️ Конфигурация базы данных
+### 🗄️ Datenbankkonfiguration
 
-Настройки Railway БД находятся в файле `backend/config/local.php`:
+Die Railway-DB-Einstellungen befinden sich in der Datei `backend/config/local.php`:
 
 ```php
 'database' => [
@@ -37,73 +37,74 @@
 ]
 ```
 
-### 🔗 URL'ы для разработки
+### 🔗 URLs für die Entwicklung
 
 - **Backend API:** http://localhost:8000/api
 - **Frontend:** http://localhost:5173
-- **Тест API:** http://localhost:8000/test-local-api.html
+- **API-Test:** http://localhost:8000/test-local-api.html
 
-### ✅ Проверка работоспособности
+### ✅ Funktionsprüfung
 
-1. **Здоровье API:**
+1. **API-Gesundheit:**
 
    ```bash
    curl http://localhost:8000/api/health
    ```
 
-2. **Продукты:**
+2. **Produkte:**
 
    ```bash
    curl http://localhost:8000/api/products
    ```
 
-3. **Категории:**
+3. **Kategorien:**
    ```bash
    curl http://localhost:8000/api/categories
    ```
 
-### 📊 Данные в БД
+### 📊 Daten in der Datenbank
 
-В базе данных уже есть тестовые данные:
+Die Datenbank enthält bereits Testdaten:
 
-- 2 продукта (iPhone 15 Pro, MacBook Air M3)
-- 4 категории (Electronics, Clothing, Books, Home & Garden)
-- Админ пользователь (email: admin@example.com, password: password)
+- 35+ Produkte mit Bildern von Unsplash
+- 10 Kategorien (Electronics, Clothing, Books, etc.)
+- Admin-Benutzer (email: admin@example.com, passwort: password)
+- Test-Benutzer (email: test@example.com, passwort: password)
 
-### 🛠️ Полезные команды
+### 🛠️ Nützliche Befehle
 
-**Остановить PHP сервер:**
+**PHP-Server stoppen:**
 
 ```bash
-# Найти процесс
+# Prozess finden
 lsof -i :8000
-# Убить процесс
+# Prozess beenden
 kill -9 <PID>
 ```
 
-**Перезапуск с очисткой кеша:**
+**Mit Cache-Löschung neu starten:**
 
 ```bash
 cd backend/public
 php -S localhost:8000 -t .
 ```
 
-### 🐛 Решение проблем
+### 🐛 Problemlösung
 
-1. **Ошибка подключения к БД:**
+1. **Datenbankverbindungsfehler:**
 
-   - Проверьте интернет соединение
-   - Убедитесь, что Railway БД доступна
+   - Überprüfen Sie die Internetverbindung
+   - Stellen Sie sicher, dass die Railway-DB verfügbar ist
 
-2. **CORS ошибки:**
+2. **CORS-Fehler:**
 
-   - Убедитесь, что PHP сервер запущен на порту 8000
-   - Проверьте настройки в `backend/public/index.php`
+   - Stellen Sie sicher, dass der PHP-Server auf Port 8000 läuft
+   - Überprüfen Sie die Einstellungen in `backend/public/index.php`
 
-3. **Frontend не видит продукты:**
-   - Проверьте URL API в `frontend/src/lib/api.ts`
-   - Должен быть: `http://localhost:8000/api`
+3. **Frontend sieht keine Produkte:**
+   - Überprüfen Sie die API-URL in `frontend/src/lib/api.ts`
+   - Sollte sein: `http://localhost:8000/api`
 
-### 🎯 Готово!
+### 🎯 Fertig!
 
-Теперь вы можете разрабатывать локально, используя данные из Railway БД!
+Jetzt können Sie lokal entwickeln und dabei Daten aus der Railway-Datenbank verwenden!

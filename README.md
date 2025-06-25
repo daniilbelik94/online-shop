@@ -1,94 +1,94 @@
-# 🛒 Online Shop - Full Stack E-commerce Platform
+# �� Online Shop - Full-Stack E-Commerce Platform
 
-A modern, full-stack e-commerce application built with React (TypeScript) frontend and PHP backend, deployed on Vercel and Railway.
+Eine moderne, vollständige E-Commerce-Anwendung mit React (TypeScript) Frontend und PHP Backend, bereitgestellt auf Vercel und Railway.
 
 ## 🌟 Live Demo
 
-🚀 **Ready to deploy your own?**
+🚀 **Bereit, Ihre eigene zu implementieren?**
 
-👉 **[Quick Deploy Guide](QUICK_DEPLOY.md)** - Get online in 5 minutes  
-📖 **[Full Deployment Guide](DEPLOYMENT.md)** - All deployment options
+👉 **[Schnelle Bereitstellung](QUICK_DEPLOY.md)** - Online in 5 Minuten  
+🏠 **[Lokale Entwicklung](LOCAL_SETUP.md)** - Entwicklungsumgebung einrichten
 
-**Example deployment:**
+**Beispiel-Bereitstellung:**
 
-- **Frontend**: https://online-shop-front-b01nq38pk-daniil-beliks-projects.vercel.app/
-- **Backend API**: https://online-shop-production-1da0.up.railway.app/api
-- **Admin Panel**: Available after login with admin credentials
+- **Frontend**: https://online-shop-front-liard.vercel.app/
+- **Backend API**: https://online-shop-production-9724.up.railway.app/api
+- **Admin-Panel**: Verfügbar nach Anmeldung mit Admin-Anmeldedaten
 
-### 🎯 What you'll get:
+### 🎯 Was Sie erhalten:
 
-- ✅ **Complete e-commerce solution** with 35+ products
-- ✅ **User authentication** and shopping cart
-- ✅ **Admin panel** for product management
-- ✅ **Responsive design** for all devices
-- ✅ **REST API** with proper documentation
-- ✅ **Docker containerization** for easy deployment
+- ✅ **Vollständige E-Commerce-Lösung** mit 35+ Produkten
+- ✅ **Benutzerauthentifizierung** und Warenkorb
+- ✅ **Admin-Panel** für Produktverwaltung
+- ✅ **Responsive Design** für alle Geräte
+- ✅ **REST API** mit ordnungsgemäßer Dokumentation
+- ✅ **Docker-Containerisierung** für einfache Bereitstellung
 
-## 🚀 Features
+## 🚀 Funktionen
 
 ### Frontend (React + TypeScript)
 
-- ✅ **Responsive Design** - Works on desktop, tablet, and mobile
-- ✅ **Product Catalog** - Browse and search products
-- ✅ **Shopping Cart** - Add/remove items, quantity management
-- ✅ **User Authentication** - Login, register, profile management
-- ✅ **Admin Dashboard** - Product management, user management
-- ✅ **Image Gallery** - Product image carousel
-- ✅ **Modern UI** - Material-UI components with custom styling
+- ✅ **Responsive Design** - Funktioniert auf Desktop, Tablet und Mobilgerät
+- ✅ **Produktkatalog** - Produkte durchsuchen und suchen
+- ✅ **Warenkorb** - Artikel hinzufügen/entfernen, Mengenverwaltung
+- ✅ **Benutzerauthentifizierung** - Anmeldung, Registrierung, Profilverwaltung
+- ✅ **Admin-Dashboard** - Produktverwaltung, Benutzerverwaltung
+- ✅ **Bildgalerie** - Produktbild-Karussell
+- ✅ **Modernes UI** - Material-UI-Komponenten mit benutzerdefiniertem Styling
 
 ### Backend (PHP + PostgreSQL)
 
-- ✅ **RESTful API** - Clean API endpoints
-- ✅ **JWT Authentication** - Secure token-based auth
-- ✅ **Admin Panel** - Full CRUD operations
-- ✅ **Image Upload** - Product image management
-- ✅ **Database** - PostgreSQL with proper relations
-- ✅ **CORS Support** - Proper cross-origin handling
+- ✅ **RESTful API** - Saubere API-Endpunkte
+- ✅ **JWT-Authentifizierung** - Sichere token-basierte Authentifizierung
+- ✅ **Admin-Panel** - Vollständige CRUD-Operationen
+- ✅ **Bild-Upload** - Produktbildverwaltung
+- ✅ **Datenbank** - PostgreSQL mit ordnungsgemäßen Beziehungen
+- ✅ **CORS-Unterstützung** - Ordnungsgemäße Cross-Origin-Behandlung
 
 ## 🛠️ Tech Stack
 
 ### Frontend
 
-- **React** 18 with TypeScript
-- **Material-UI** for components
-- **Redux Toolkit** for state management
-- **React Router** for navigation
-- **Axios** for API calls
-- **Swiper** for product sliders
-- **Vite** for build tooling
+- **React** 18 mit TypeScript
+- **Material-UI** für Komponenten
+- **Redux Toolkit** für Zustandsverwaltung
+- **React Router** für Navigation
+- **Axios** für API-Aufrufe
+- **Swiper** für Produktslider
+- **Vite** für Build-Tools
 
 ### Backend
 
-- **PHP** 8.3 with Apache
-- **PostgreSQL** database
-- **JWT** for authentication
-- **Clean Architecture** with DDD principles
-- **Docker** for containerization
+- **PHP** 8.3 mit Apache
+- **PostgreSQL** Datenbank
+- **JWT** für Authentifizierung
+- **Clean Architecture** mit DDD-Prinzipien
+- **Docker** für Containerisierung
 
-### Infrastructure
+### Infrastruktur
 
-- **Vercel** - Frontend hosting
-- **Railway** - Backend hosting + PostgreSQL
-- **Docker** - Containerization
+- **Vercel** - Frontend-Hosting
+- **Railway** - Backend-Hosting + PostgreSQL
+- **Docker** - Containerisierung
 
-## 📦 Installation & Setup
+## 📦 Installation & Einrichtung
 
-### Prerequisites
+### Voraussetzungen
 
-- Node.js 18+ and npm
-- Docker and Docker Compose (for local development)
+- Node.js 18+ und npm
+- Docker und Docker Compose (für lokale Entwicklung)
 - Git
 
-### Local Development
+### Lokale Entwicklung
 
-1. **Clone the repository:**
+1. **Repository klonen:**
 
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/daniilbelik94/online-shop.git
    cd online-shop
    ```
 
-2. **Frontend Setup:**
+2. **Frontend-Einrichtung:**
 
    ```bash
    cd frontend
@@ -96,18 +96,18 @@ A modern, full-stack e-commerce application built with React (TypeScript) fronte
    npm run dev
    ```
 
-3. **Backend Setup (Docker):**
+3. **Backend-Einrichtung (Docker):**
 
    ```bash
-   # From project root
+   # Vom Projektverzeichnis
    docker-compose up -d
    ```
 
-4. **Environment Variables:**
-   Create `.env` file in project root:
+4. **Umgebungsvariablen:**
+   Erstellen Sie eine `.env`-Datei im Projektverzeichnis:
 
    ```bash
-   # Database
+   # Datenbank
    DB_HOST=localhost
    DB_PORT=5432
    DB_NAME=ecommerce
@@ -122,64 +122,47 @@ A modern, full-stack e-commerce application built with React (TypeScript) fronte
    VITE_API_URL=http://localhost:8080/api
    ```
 
-## 🚀 Production Deployment
+## 🚀 Produktive Bereitstellung
 
-### Railway Backend Setup
+### Railway Backend-Einrichtung
 
-1. **Environment Variables** (Already configured):
+**Umgebungsvariablen** (bereits konfiguriert):
 
-   ```
-   DB_HOST=interchange.proxy.rlwy.net
-   DB_PORT=45401
-   DB_NAME=railway
-   DB_USERNAME=postgres
-   DB_PASSWORD=BOreDfeaiQUZeSJCtAUELdcwDISAwkfA
-   JWT_SECRET=your-super-secret-jwt-key-here-make-it-long-and-random
-   APP_ENV=production
-   ```
+```
+APP_ENV=production
+JWT_SECRET=a8f5f167f44f4964e6c998dee827110c-very-long-random-secret-key-for-production-use
+DATABASE_URL=postgresql://postgres:dUFmWnOWkvRdcjvczdrjghjijEnyWgvh@postgres.railway.internal:5432/railway
+```
 
-2. **Database Initialization:**
+### Vercel Frontend-Einrichtung
 
-   ```sql
-   -- Execute in Railway Console
-   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+**Umgebungsvariablen:**
 
-   -- Create tables (see SETUP_GUIDE.md for full SQL)
-   ```
+```
+VITE_API_URL=https://online-shop-production-9724.up.railway.app/api
+```
 
-3. **Deploy:** Railway automatically deploys from your repository
+## 📖 API-Dokumentation
 
-### Vercel Frontend Setup
-
-1. **Environment Variables:**
-
-   ```
-   VITE_API_URL=https://online-shop-production-1da0.up.railway.app/api
-   ```
-
-2. **Deploy:** Vercel automatically deploys from your repository
-
-## 📖 API Documentation
-
-### Authentication Endpoints
+### Authentifizierungs-Endpunkte
 
 ```
 POST /api/auth/login
 POST /api/auth/refresh
-POST /api/users (register)
+POST /api/users (Registrierung)
 ```
 
-### Product Endpoints
+### Produkt-Endpunkte
 
 ```
 GET /api/products
 GET /api/products/{slug}
-POST /api/admin/products (admin only)
-PUT /api/admin/products/{id} (admin only)
-DELETE /api/admin/products/{id} (admin only)
+POST /api/admin/products (nur Admin)
+PUT /api/admin/products/{id} (nur Admin)
+DELETE /api/admin/products/{id} (nur Admin)
 ```
 
-### User Endpoints
+### Benutzer-Endpunkte
 
 ```
 GET /api/user/me
@@ -187,7 +170,7 @@ PUT /api/user/me
 GET /api/user/orders
 ```
 
-### Admin Endpoints
+### Admin-Endpunkte
 
 ```
 GET /api/admin/users
@@ -195,127 +178,69 @@ PUT /api/admin/users/{id}
 GET /api/admin/products/stats
 ```
 
-## 🔐 Default Credentials
+## 🔐 Standard-Anmeldedaten
 
-**Admin User:**
+**Admin-Benutzer:**
 
 - Email: `admin@example.com`
-- Password: `password`
+- Passwort: `password`
 
-**Note:** Change these credentials in production!
+**Test-Benutzer:**
 
-## 🛠️ Development Commands
+- Email: `test@example.com`
+- Passwort: `password`
 
-```bash
-# Frontend development
-cd frontend
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
+## 🗄️ Datenbank
 
-# Backend development
-docker-compose up -d       # Start backend services
-docker-compose logs -f     # View logs
-docker-compose down        # Stop services
+**Ihre Datenbank enthält:**
 
-# Database
-docker-compose exec db psql -U postgres -d ecommerce
-```
+- 📦 35+ Produkte mit Bildern von Unsplash
+- 🏷️ 10 Produktkategorien
+- 👤 Mehrere Testbenutzer
+- 🛒 Funktionsfähiger Warenkorb und Bestellsystem
 
-## 📁 Project Structure
+## 🔍 Überwachung
 
-```
-online-shop/
-├── frontend/                 # React frontend
-│   ├── src/
-│   │   ├── components/      # Reusable components
-│   │   ├── pages/           # Route components
-│   │   ├── features/        # Feature-specific components
-│   │   ├── store/           # Redux store
-│   │   ├── lib/             # API and utilities
-│   │   └── main.tsx         # App entry point
-│   ├── public/              # Static assets
-│   └── package.json
-├── backend/                 # PHP backend
-│   ├── src/
-│   │   ├── Application/     # Application services
-│   │   ├── Domain/          # Domain entities
-│   │   ├── Infrastructure/  # Database repositories
-│   │   └── Presentation/    # Controllers
-│   ├── public/              # Web root
-│   └── composer.json
-├── docker/                  # Docker configuration
-├── docker-compose.yml       # Local development
-└── README.md
-```
+**Überprüfen Sie, ob alles funktioniert:**
 
-## 🧪 Testing
+1. **Backend API:** `https://online-shop-production-9724.up.railway.app/api/health`
+2. **Produkte:** `https://online-shop-production-9724.up.railway.app/api/products`
+3. **Frontend:** `https://online-shop-front-liard.vercel.app`
 
-### Frontend Testing
+## 🛠️ Fehlerbehebung
 
-```bash
-cd frontend
-npm test
-```
+**Häufige Probleme:**
 
-### Backend Testing
+1. **Datenbank verbindet sich nicht:**
 
-```bash
-cd backend
-composer test
-```
+   - Überprüfen Sie die Umgebungsvariablen
+   - Stellen Sie sicher, dass PostgreSQL läuft
 
-## 🔧 Troubleshooting
+2. **Bilder laden nicht:**
 
-### Common Issues
+   - Überprüfen Sie CORS-Einstellungen
+   - Stellen Sie sicher, dass Unsplash verfügbar ist
 
-1. **CORS Errors:**
+3. **Frontend sieht API nicht:**
+   - Überprüfen Sie `VITE_API_URL` in Umgebungsvariablen
+   - Stellen Sie sicher, dass Backend verfügbar ist
 
-   - Check VITE_API_URL in frontend
-   - Verify CORS headers in backend
+## 📚 Demo-Features
 
-2. **Database Connection:**
+**Was in Ihrem Portfolio-Projekt zu zeigen:**
 
-   - Verify environment variables
-   - Check Railway database status
-
-3. **Build Errors:**
-
-   - Clear npm cache: `npm cache clean --force`
-   - Restart Vite: `npm run dev`
-
-4. **Docker Issues:**
-   - Restart Docker: `docker-compose down && docker-compose up -d`
-   - Clear volumes: `docker-compose down -v`
-
-### Performance Optimization
-
-- Images are optimized for web
-- API responses are paginated
-- Frontend uses lazy loading
-- Database queries are optimized
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📝 License
-
-This project is licensed under the MIT License.
-
-## 📞 Support
-
-If you encounter any issues:
-
-1. Check the troubleshooting section
-2. Review the setup guide
-3. Check the logs for error messages
-4. Open an issue on GitHub
+✅ **Vollständiger Online-Shop**  
+✅ **Microservices-Architektur (Backend + Frontend)**  
+✅ **PostgreSQL mit echten Daten**  
+✅ **Docker-Containerisierung**  
+✅ **REST API mit Dokumentation**  
+✅ **Responsive Design**  
+✅ **Authentifizierung und Warenkorb**
 
 ---
 
-**Happy Shopping! 🛍️**
+**🎯 Fertig! Ihr Online-Shop ist bereitgestellt und bereit zur Demonstration!**
+
+## 📄 Lizenz
+
+Dieses Projekt ist unter der MIT-Lizenz lizenziert.

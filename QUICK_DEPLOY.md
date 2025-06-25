@@ -1,68 +1,68 @@
-# 🚀 Быстрое развертывание на Railway
+# 🚀 Schnelle Bereitstellung auf Railway
 
-## За 5 минут до живого сайта!
+## In 5 Minuten zur Live-Website!
 
-**Стратегия:** Бэкенд на Railway + Фронтенд на Vercel (Рекомендуется для стабильности)
+**Strategie:** Backend auf Railway + Frontend auf Vercel (Empfohlen für Stabilität)
 
-### 1. Подготовка репозитория
+### 1. Repository vorbereiten
 
 ```bash
 git add .
-git commit -m "Ready for deployment"
+git commit -m "Bereit für Bereitstellung"
 git push origin main
 ```
 
-### 2. Регистрация на Railway
+### 2. Bei Railway registrieren
 
-1. Идите на [railway.app](https://railway.app)
-2. Войдите через GitHub
-3. Дайте разрешения
+1. Gehen Sie zu [railway.app](https://railway.app)
+2. Melden Sie sich über GitHub an
+3. Erteilen Sie die erforderlichen Berechtigungen
 
-### 3. Создание проекта
+### 3. Projekt erstellen
 
-1. Нажмите **"New Project"**
-2. Выберите **"Deploy from GitHub repo"**
-3. Выберите ваш репозиторий `online-shop`
+1. Klicken Sie auf **"New Project"**
+2. Wählen Sie **"Deploy from GitHub repo"**
+3. Wählen Sie Ihr Repository `online-shop`
 
-### 4. Добавление базы данных
+### 4. Datenbank hinzufügen
 
-1. В дашборде проекта нажмите **"New"**
-2. Выберите **"Database"** → **"PostgreSQL"**
-3. Дождитесь создания
+1. Klicken Sie im Projekt-Dashboard auf **"New"**
+2. Wählen Sie **"Database"** → **"PostgreSQL"**
+3. Warten Sie auf die Erstellung
 
-### 5. Настройка переменных окружения
+### 5. Umgebungsvariablen konfigurieren
 
-В настройках сервиса добавьте:
+Fügen Sie in den Service-Einstellungen hinzu:
 
 ```
 APP_ENV=production
-JWT_SECRET=your-super-secure-jwt-key-minimum-32-characters-long
+JWT_SECRET=ihr-super-sicherer-jwt-schluessel-mindestens-32-zeichen-lang
 ```
 
-**Важно:** Railway автоматически создаст переменную `DATABASE_URL` при подключении PostgreSQL.
+**Wichtig:** Railway erstellt automatisch die Variable `DATABASE_URL` beim Verbinden mit PostgreSQL.
 
-### 6. Готово! 🎉
+### 6. Fertig! 🎉
 
-- Railway автоматически развернет ваше приложение при push в main
-- Получите URL вида: `https://your-app-name.railway.app`
-- База данных автоматически инициализируется
-- GitHub Actions будет проверять код при каждом коммите
+- Railway stellt Ihre Anwendung automatisch bei Push zu main bereit
+- Sie erhalten eine URL wie: `https://ihr-app-name.railway.app`
+- Die Datenbank wird automatisch initialisiert
+- GitHub Actions überprüft den Code bei jedem Commit
 
-## 📱 Тестовые аккаунты
+## 📱 Testkonten
 
-- **Админ:** `admin@example.com` / `password`
-- **Пользователь:** `test@example.com` / `password`
+- **Admin:** `admin@example.com` / `password`
+- **Benutzer:** `test@example.com` / `password`
 
-## 🔗 Что получается
+## 🔗 Was Sie erhalten
 
-✅ Полноценный интернет-магазин  
-✅ 35+ товаров с картинками  
-✅ Регистрация и авторизация  
-✅ Корзина покупок  
-✅ Админ панель  
-✅ Responsive дизайн
+✅ Vollständiger Online-Shop  
+✅ 35+ Produkte mit Bildern  
+✅ Registrierung und Authentifizierung  
+✅ Warenkorb  
+✅ Admin-Panel  
+✅ Responsive Design
 
 ---
 
-**Время развертывания: ~5 минут**  
-**Стоимость: Бесплатно (Railway Free Tier)**
+**Bereitstellungszeit: ~5 Minuten**  
+**Kosten: Kostenlos (Railway Free Tier)**
