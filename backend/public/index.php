@@ -24,6 +24,18 @@ if ($appEnv === 'production') {
     if (isset($_ENV['DATABASE_URL'])) {
         error_log("DATABASE_URL first 20 chars: " . substr($_ENV['DATABASE_URL'], 0, 20));
     }
+
+    // Emergency debug output
+    if (isset($_GET['debug'])) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'APP_ENV' => $_ENV['APP_ENV'] ?? 'not-set',
+            'DATABASE_URL_exists' => isset($_ENV['DATABASE_URL']),
+            'DATABASE_URL_preview' => isset($_ENV['DATABASE_URL']) ? substr($_ENV['DATABASE_URL'], 0, 50) . '...' : 'not-set',
+            'config_file_used' => $appEnv === 'production' ? 'production.php' : 'local.php'
+        ], JSON_PRETTY_PRINT);
+        exit;
+    }
 } else {
     // Local development configuration
     $localConfigFile = __DIR__ . '/../config/local.php';
