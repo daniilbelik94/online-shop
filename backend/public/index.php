@@ -17,6 +17,13 @@ if ($appEnv === 'production') {
         $config = require $productionConfigFile;
         // Environment variables are already loaded, config just provides fallbacks
     }
+
+    // Debug: log environment variables for Railway
+    error_log("APP_ENV: " . ($_ENV['APP_ENV'] ?? 'not-set'));
+    error_log("DATABASE_URL exists: " . (isset($_ENV['DATABASE_URL']) ? 'yes' : 'no'));
+    if (isset($_ENV['DATABASE_URL'])) {
+        error_log("DATABASE_URL first 20 chars: " . substr($_ENV['DATABASE_URL'], 0, 20));
+    }
 } else {
     // Local development configuration
     $localConfigFile = __DIR__ . '/../config/local.php';
