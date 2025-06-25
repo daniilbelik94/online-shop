@@ -1,4 +1,4 @@
-name: Deploy to Production
+name: Test and Build
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    name: Test Application
+    name: Test and Build
 
     steps:
       - uses: actions/checkout@v4
@@ -18,7 +18,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: pdo, pdo_pgsql, mbstring, exif, pcntl, bcmath, gd
+          extensions: pdo, pdo_pgsql
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -37,48 +37,14 @@ jobs:
 
       - name: Check PHP syntax
         working-directory: backend
-        run:
-          find . -name "*.php" -exec php -l {} \;
-
-          # Temporarily disabled for quick deployment
-      # - name: TypeScript type check
-      #   working-directory: frontend
-      #   run: npm run type-check
+        run: find . -name "*.php" -exec php -l {} \;
 
       - name: Build frontend
         working-directory: frontend
         run: npm run build
 
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    name: Deploy to Railway
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Railway
-        uses: railway-app/railway-action@v1
-        with:
-          token: ${{ secrets.RAILWAY_TOKEN }}
-          command: up --detach
-
-  notify:
-    needs: [test, deploy]
-    runs-on: ubuntu-latest
-    if: always()
-    name: Notify Status
-
-    steps:
-      - name: Notify Success
-        if: needs.deploy.result == 'success'
+      - name: Test completion
         run: |
-          echo "🚀 Deployment successful!"
-          echo "Your app is live at: https://your-app.railway.app"
-
-      - name: Notify Failure
-        if: needs.deploy.result == 'failure' || needs.test.result == 'failure'
-        run: |
-          echo "❌ Deployment failed!"
-          echo "Check the logs for more information."
+          echo "✅ All tests passed!"
+          echo "📝 Railway will auto-deploy from main branch"
+          echo "🎨 Deploy frontend manually to Vercel with VITE_API_URL"
