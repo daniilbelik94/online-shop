@@ -5,12 +5,19 @@ interface CartState {
   cart: Cart | null;
   loading: boolean;
   error: string | null;
+  lastAction: string | null; // Track last successful action
+  notification: {
+    message: string;
+    type: 'success' | 'error' | null;
+  } | null;
 }
 
 const initialState: CartState = {
   cart: null,
   loading: false,
   error: null,
+  lastAction: null,
+  notification: null,
 };
 
 // Async thunks
@@ -72,6 +79,14 @@ const cartSlice = createSlice({
     resetCart: (state) => {
       state.cart = null;
       state.error = null;
+      state.lastAction = null;
+      state.notification = null;
+    },
+    clearNotification: (state) => {
+      state.notification = null;
+    },
+    setNotification: (state, action: PayloadAction<{ message: string; type: 'success' | 'error' }>) => {
+      state.notification = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -95,45 +110,75 @@ const cartSlice = createSlice({
       .addCase(addToCart.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.notification = null;
       })
       .addCase(addToCart.fulfilled, (state, action: PayloadAction<Cart>) => {
         state.loading = false;
         state.cart = action.payload;
         state.error = null;
+        state.lastAction = 'ADD_TO_CART';
+        state.notification = {
+          message: 'Product added to cart successfully!',
+          type: 'success'
+        };
       })
       .addCase(addToCart.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to add item to cart';
+        state.notification = {
+          message: action.error.message || 'Failed to add item to cart',
+          type: 'error'
+        };
       })
       
       // Update cart item
       .addCase(updateCartItem.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.notification = null;
       })
       .addCase(updateCartItem.fulfilled, (state, action: PayloadAction<Cart>) => {
         state.loading = false;
         state.cart = action.payload;
         state.error = null;
+        state.lastAction = 'UPDATE_CART_ITEM';
+        state.notification = {
+          message: 'Cart updated successfully!',
+          type: 'success'
+        };
       })
       .addCase(updateCartItem.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to update cart item';
+        state.notification = {
+          message: action.error.message || 'Failed to update cart item',
+          type: 'error'
+        };
       })
       
       // Remove from cart
       .addCase(removeFromCart.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.notification = null;
       })
       .addCase(removeFromCart.fulfilled, (state, action: PayloadAction<Cart>) => {
         state.loading = false;
         state.cart = action.payload;
         state.error = null;
+        state.lastAction = 'REMOVE_FROM_CART';
+        state.notification = {
+          message: 'Item removed from cart!',
+          type: 'success'
+        };
       })
       .addCase(removeFromCart.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to remove item from cart';
+        state.notification = {
+          message: action.error.message || 'Failed to remove item from cart',
+          type: 'error'
+        };
       })
       
       // Clear cart
@@ -168,7 +213,7 @@ const cartSlice = createSlice({
   },
 });
 
-export const { clearError, resetCart } = cartSlice.actions;
+export const { clearError, resetCart, clearNotification, setNotification } = cartSlice.actions;
 
 // Selectors
 export const selectCart = (state: { cart: CartState }) => state.cart.cart;
@@ -178,5 +223,7 @@ export const selectCartItemsCount = (state: { cart: CartState }) =>
   state.cart.cart?.count || 0;
 export const selectCartTotal = (state: { cart: CartState }) => 
   state.cart.cart?.total || 0;
+export const selectCartNotification = (state: { cart: CartState }) => 
+  state.cart.notification;
 
 export default cartSlice.reducer; 

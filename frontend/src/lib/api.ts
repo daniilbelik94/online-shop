@@ -86,6 +86,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || (
 // Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true, // Enable cookies for cart session
   headers: {
     'Content-Type': 'application/json',
   },
@@ -94,13 +95,36 @@ const api: AxiosInstance = axios.create({
 // Export the api instance
 export { api };
 
-// Request interceptor to add auth token
+// Session ID management
+let sessionId: string | null = null;
+
+const getSessionId = (): string => {
+  if (!sessionId) {
+    // Try to get from localStorage first
+    sessionId = localStorage.getItem('cart_session_id');
+    
+    if (!sessionId) {
+      // Generate new session ID
+      sessionId = Array.from(crypto.getRandomValues(new Uint8Array(16)), 
+        b => b.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem('cart_session_id', sessionId);
+    }
+  }
+  return sessionId;
+};
+
+// Request interceptor to add auth token and session ID
 api.interceptors.request.use(
   (config) => {
     const token = store.getState().auth.token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Add session ID header for cart operations
+    const currentSessionId = getSessionId();
+    config.headers['X-Session-ID'] = currentSessionId;
+    
     return config;
   },
   (error) => {
@@ -117,6 +141,10 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Token expired or invalid - logout user
       store.dispatch(logout());
+      // Don't redirect on cart operations for guests
+      if (error.config?.url?.includes('/cart') && !store.getState().auth.token) {
+        return Promise.reject(error);
+      }
       window.location.href = '/login';
     }
     return Promise.reject(error);
