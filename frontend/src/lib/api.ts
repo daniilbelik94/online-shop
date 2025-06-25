@@ -19,17 +19,22 @@ export interface Product {
   name: string;
   slug: string;
   description: string;
+  short_description?: string;
   price: number;
+  compare_price?: number;
   category_id: number;
   category?: Category;
+  category_name?: string;
   brand?: string;
-  sku: string;
+  sku?: string;
   stock_quantity: number;
-  image_url?: string;
-  images?: string[];
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  is_in_stock: boolean;
+  is_featured: boolean;
+  image_url: string;
+  images: string[];
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ProductsResponse {
@@ -85,6 +90,9 @@ const api: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Export the api instance
+export { api };
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
