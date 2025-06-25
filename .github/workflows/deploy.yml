@@ -9,9 +9,16 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    name: Test Application
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo, pdo_pgsql, mbstring, exif, pcntl, bcmath, gd
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -20,62 +27,56 @@ jobs:
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm ci
+      - name: Install PHP dependencies
+        working-directory: backend
+        run: composer install --no-dev --optimize-autoloader
 
-      - name: Run frontend tests
-        run: |
-          cd frontend
-          npm run type-check
+      - name: Install Node.js dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Check PHP syntax
+        working-directory: backend
+        run: find . -name "*.php" -exec php -l {} \;
+
+      - name: TypeScript type check
+        working-directory: frontend
+        run: npm run type-check
 
       - name: Build frontend
-        run: |
-          cd frontend
-          npm run build
+        working-directory: frontend
+        run: npm run build
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.3"
-          extensions: pdo, pdo_pgsql, mbstring, exif, pcntl, bcmath, gd
-
-      - name: Install backend dependencies
-        run: |
-          cd backend
-          composer install --no-dev --optimize-autoloader
-
-      - name: Run PHP syntax check
-        run: |
-          find backend/src -name "*.php" -exec php -l {} \;
-
-  deploy-railway:
+  deploy:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    name: Deploy to Railway
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Deploy to Railway
-        uses: railway-app/railway-deploy@v1
+        uses: railway-app/railway-action@v1
         with:
           token: ${{ secrets.RAILWAY_TOKEN }}
-          service: ${{ secrets.RAILWAY_SERVICE_ID }}
+          command: up --detach
 
-  deploy-vercel:
-    needs: test
+  notify:
+    needs: [test, deploy]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: always()
+    name: Notify Status
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Notify Success
+        if: needs.deploy.result == 'success'
+        run: |
+          echo "🚀 Deployment successful!"
+          echo "Your app is live at: https://your-app.railway.app"
 
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: frontend
+      - name: Notify Failure
+        if: needs.deploy.result == 'failure' || needs.test.result == 'failure'
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Check the logs for more information."

@@ -7,14 +7,40 @@ ini_set('display_errors', 1);
 // Autoload classes using Composer
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// Load environment variables
-$envFile = __DIR__ . '/../../.env';
-if (file_exists($envFile)) {
-    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0) continue;
-        list($name, $value) = explode('=', $line, 2);
-        $_ENV[trim($name)] = trim($value);
+// Load configuration
+$appEnv = $_ENV['APP_ENV'] ?? 'development';
+
+if ($appEnv === 'production') {
+    // Production configuration with environment variables
+    $productionConfigFile = __DIR__ . '/../config/production.php';
+    if (file_exists($productionConfigFile)) {
+        $config = require $productionConfigFile;
+        // Environment variables are already loaded, config just provides fallbacks
+    }
+} else {
+    // Local development configuration
+    $localConfigFile = __DIR__ . '/../config/local.php';
+    if (file_exists($localConfigFile)) {
+        $config = require $localConfigFile;
+        $_ENV['DB_HOST'] = $config['database']['host'];
+        $_ENV['DB_PORT'] = $config['database']['port'];
+        $_ENV['DB_NAME'] = $config['database']['name'];
+        $_ENV['DB_USERNAME'] = $config['database']['username'];
+        $_ENV['DB_PASSWORD'] = $config['database']['password'];
+        $_ENV['JWT_SECRET'] = $config['app']['jwt_secret'];
+        $_ENV['APP_ENV'] = $config['app']['env'];
+    } else {
+        // Load environment variables from .env file
+        $envFile = __DIR__ . '/../../.env';
+        if (file_exists($envFile)) {
+            $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $line) {
+                if (strpos(trim($line), '#') === 0) continue;
+                if (strpos($line, '=') === false) continue;
+                list($name, $value) = explode('=', $line, 2);
+                $_ENV[trim($name)] = trim($value);
+            }
+        }
     }
 }
 

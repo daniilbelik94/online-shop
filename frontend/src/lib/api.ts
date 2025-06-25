@@ -4,33 +4,30 @@ import { logout } from '../store/slices/authSlice';
 
 // Types
 export interface Category {
-  id: string;
+  id: number;
   name: string;
   slug: string;
   description?: string;
-  parent_id?: string;
+  parent_id?: number;
   created_at: string;
   updated_at: string;
   children?: Category[];
 }
 
 export interface Product {
-  id: string;
+  id: number;
   name: string;
   slug: string;
   description: string;
-  short_description?: string;
   price: number;
-  category_id: string;
+  category_id: number;
   category?: Category;
   brand?: string;
   sku: string;
   stock_quantity: number;
   image_url?: string;
-  images?: string[] | { image_url: string }[];
+  images?: string[];
   is_active: boolean;
-  is_in_stock?: boolean;
-  is_featured?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -167,27 +164,23 @@ export const adminAPI = {
   createProduct: (data: {
     name: string;
     description: string;
-    short_description?: string;
     price: number;
-    category_id: string | number;
+    category_id: number;
     brand?: string;
     stock_quantity: number;
     sku?: string;
     image_url?: string;
-    images?: any[];
   }) => api.post('/admin/products', data),
   
   updateProduct: (id: string, data: {
     name?: string;
     description?: string;
-    short_description?: string;
     price?: number;
-    category_id?: string | number;
+    category_id?: number;
     brand?: string;
     stock_quantity?: number;
     sku?: string;
     image_url?: string;
-    images?: any[];
   }) => api.put(`/admin/products/${id}`, data),
   
   deleteProduct: (id: string) => api.delete(`/admin/products/${id}`),

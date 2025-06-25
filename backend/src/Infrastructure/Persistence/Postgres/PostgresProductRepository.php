@@ -554,13 +554,23 @@ class PostgresProductRepository implements ProductRepositoryInterface
         // Handle images array
         if (!empty($data['images'])) {
             $images = [];
+
             if (is_string($data['images'])) {
-                // Parse PostgreSQL array format
+                // Parse PostgreSQL array format: {url1,url2,url3}
                 $imagesStr = trim($data['images'], '{}');
-                if ($imagesStr) {
+
+                if ($imagesStr && $imagesStr !== '') {
+                    // Split by comma and clean up each URL
+                    $imageUrls = explode(',', $imagesStr);
+
                     $images = array_map(function ($img) {
-                        return trim($img, '"');
-                    }, explode(',', $imagesStr));
+                        return trim($img, '"\'');
+                    }, $imageUrls);
+
+                    // Filter out empty values
+                    $images = array_filter($images, function ($img) {
+                        return !empty($img);
+                    });
                 }
             } elseif (is_array($data['images'])) {
                 $images = $data['images'];

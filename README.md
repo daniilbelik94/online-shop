@@ -4,9 +4,25 @@ A modern, full-stack e-commerce application built with React (TypeScript) fronte
 
 ## 🌟 Live Demo
 
+🚀 **Ready to deploy your own?**
+
+👉 **[Quick Deploy Guide](QUICK_DEPLOY.md)** - Get online in 5 minutes  
+📖 **[Full Deployment Guide](DEPLOYMENT.md)** - All deployment options
+
+**Example deployment:**
+
 - **Frontend**: https://online-shop-front-b01nq38pk-daniil-beliks-projects.vercel.app/
 - **Backend API**: https://online-shop-production-1da0.up.railway.app/api
 - **Admin Panel**: Available after login with admin credentials
+
+### 🎯 What you'll get:
+
+- ✅ **Complete e-commerce solution** with 35+ products
+- ✅ **User authentication** and shopping cart
+- ✅ **Admin panel** for product management
+- ✅ **Responsive design** for all devices
+- ✅ **REST API** with proper documentation
+- ✅ **Docker containerization** for easy deployment
 
 ## 🚀 Features
 

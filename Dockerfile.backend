@@ -1,26 +1,29 @@
+# Use PHP 8.3 with Apache
 FROM php:8.3-apache
 
-# Install system dependencies
+# Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
     git \
     curl \
-    libpq-dev \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
+    libpq-dev \
     zip \
-    unzip
+    unzip \
+    && docker-php-ext-install \
+    pdo \
+    pdo_pgsql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd
 
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+# Enable Apache modules
+RUN a2enmod rewrite headers
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo pdo_pgsql mbstring exif pcntl bcmath gd
-
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
-
-# Install Composer
+# Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Set working directory
@@ -29,32 +32,18 @@ WORKDIR /var/www/html
 # Copy backend files
 COPY backend/ .
 
-# Install PHP dependencies
+# Install dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Create uploads directory
-RUN mkdir -p public/uploads && chmod 755 public/uploads
+# Configure Apache
+COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.conf
 
-# Set proper permissions
-RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/public
 
-# Configure Apache DocumentRoot
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
-RUN sed -i 's|/var/www/|/var/www/html/public/|g' /etc/apache2/apache2.conf
-
-# Enable error reporting for debugging (disable in production)
-RUN echo "php_flag display_errors On" >> /var/www/html/public/.htaccess
-RUN echo "php_value error_reporting E_ALL" >> /var/www/html/public/.htaccess
-
-# Create .htaccess for URL rewriting
-RUN echo "RewriteEngine On\n\
-RewriteCond %{REQUEST_FILENAME} !-f\n\
-RewriteCond %{REQUEST_FILENAME} !-d\n\
-RewriteRule ^(.*)$ index.php [QSA,L]\n\
-Header always set Access-Control-Allow-Origin \"*\"\n\
-Header always set Access-Control-Allow-Methods \"GET, POST, PUT, DELETE, OPTIONS\"\n\
-Header always set Access-Control-Allow-Headers \"Content-Type, Authorization\"" > /var/www/html/public/.htaccess
-
+# Expose port
 EXPOSE 80
 
+# Start Apache
 CMD ["apache2-foreground"] 

@@ -74,7 +74,7 @@ const HomePage: React.FC = () => {
 
   const handleAddToCart = async (product: Product) => {
     try {
-      await dispatch(addToCart({ productId: product.id, quantity: 1 })).unwrap();
+      await dispatch(addToCart({ productId: product.id.toString(), quantity: 1 })).unwrap();
       // You could add a toast notification here
     } catch (error) {
       console.error('Failed to add to cart:', error);
