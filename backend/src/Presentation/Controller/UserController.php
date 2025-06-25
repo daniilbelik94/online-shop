@@ -161,6 +161,8 @@ class UserController
             'role' => $user->getRole(),
             'email_verified' => $user->isEmailVerified(),
             'is_active' => $user->isActive(),
+            'is_staff' => $user->isStaff(),
+            'is_superuser' => $user->isSuperuser(),
             'created_at' => $user->getCreatedAt()->format('Y-m-d\TH:i:s\Z'),
             'updated_at' => $user->getUpdatedAt()->format('Y-m-d\TH:i:s\Z')
         ];
