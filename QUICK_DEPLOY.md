@@ -37,6 +37,8 @@ APP_ENV=production
 JWT_SECRET=your-super-secure-jwt-key-minimum-32-characters-long
 ```
 
+**Важно:** Railway автоматически создаст переменную `DATABASE_URL` при подключении PostgreSQL.
+
 ### 6. Готово! 🎉
 
 - Railway автоматически развернет ваше приложение

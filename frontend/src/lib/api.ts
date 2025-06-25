@@ -71,7 +71,12 @@ export interface Cart {
   cart_id: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (
+  // Use relative path for same-domain deployment (Railway)
+  window.location.hostname === 'localhost' 
+    ? 'http://localhost:8080/api'
+    : '/api'
+);
 
 // Create axios instance
 const api: AxiosInstance = axios.create({

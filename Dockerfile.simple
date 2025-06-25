@@ -1,49 +1,85 @@
-# Simple backend-only Dockerfile for Railway - Memory optimized
+# Multi-stage build for Railway deployment
+FROM node:20-alpine as frontend-builder
+
+# Build frontend
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci --only=production
+COPY frontend/ ./
+RUN npm run build
+
+# PHP backend with Apache
 FROM php:8.3-apache
 
-# Install essential dependencies in smaller chunks
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev \
+# Install system dependencies and PHP extensions
+RUN apt-get update && apt-get install -y \
     git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libpq-dev \
     zip \
     unzip \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install PHP extensions
-RUN docker-php-ext-install pdo pdo_pgsql
+    && docker-php-ext-install \
+    pdo \
+    pdo_pgsql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Enable Apache modules
 RUN a2enmod rewrite headers
 
 # Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Set working directory
 WORKDIR /var/www/html
 
-# Copy backend
+# Copy backend files
 COPY backend/ .
 
-# Install dependencies without dev packages
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Set permissions
-RUN mkdir -p public/uploads && chmod 755 public/uploads && \
-    chown -R www-data:www-data /var/www/html
+# Copy built frontend
+COPY --from=frontend-builder /app/frontend/dist ./public/frontend
 
-# Configure Apache
+# Configure Apache DocumentRoot
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
 
-# Create .htaccess with CORS support
-RUN echo 'RewriteEngine On\n\
+# Create .htaccess for URL rewriting and CORS
+RUN echo "RewriteEngine On\n\
+# API routes\n\
+RewriteCond %{REQUEST_URI} ^/api\n\
 RewriteCond %{REQUEST_FILENAME} !-f\n\
 RewriteCond %{REQUEST_FILENAME} !-d\n\
 RewriteRule ^(.*)$ index.php [QSA,L]\n\
 \n\
-# CORS Headers\n\
-Header always set Access-Control-Allow-Origin "*"\n\
-Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"\n\
-Header always set Access-Control-Allow-Headers "Content-Type, Authorization"\n\
-Header always set Access-Control-Max-Age "3600"' > /var/www/html/public/.htaccess
+# Frontend routes\n\
+RewriteCond %{REQUEST_URI} !^/api\n\
+RewriteCond %{REQUEST_URI} !^/uploads\n\
+RewriteCond %{REQUEST_FILENAME} !-f\n\
+RewriteCond %{REQUEST_FILENAME} !-d\n\
+RewriteRule ^(.*)$ frontend/index.html [QSA,L]\n\
+\n\
+# CORS headers\n\
+Header always set Access-Control-Allow-Origin \"*\"\n\
+Header always set Access-Control-Allow-Methods \"GET, POST, PUT, DELETE, OPTIONS\"\n\
+Header always set Access-Control-Allow-Headers \"Content-Type, Authorization\"" > /var/www/html/public/.htaccess
 
+# Create uploads directory and set permissions
+RUN mkdir -p /var/www/html/public/uploads \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/public
+
+# Expose port
 EXPOSE 80
+
+# Start Apache
 CMD ["apache2-foreground"] 
