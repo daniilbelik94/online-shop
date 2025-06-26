@@ -66,6 +66,9 @@ if ($appEnv === 'production') {
     }
 }
 
+// First, remove any Access-Control-Allow-Origin header that might have been set by an upstream proxy
+header_remove('Access-Control-Allow-Origin');
+
 // CORS headers configuration
 $allowedOrigins = [
     'http://localhost:5173', // Local dev
