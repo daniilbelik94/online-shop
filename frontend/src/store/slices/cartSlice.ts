@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction, createSelector } from '@reduxjs/toolkit';
 import { cartAPI, Cart, CartItem } from '../../lib/api';
 
 interface CartState {
@@ -215,15 +215,35 @@ const cartSlice = createSlice({
 
 export const { clearError, resetCart, clearNotification, setNotification } = cartSlice.actions;
 
-// Selectors
+// Add missing action creators
+export const updateQuantity = updateCartItem;
+
+// Basic selectors
 export const selectCart = (state: { cart: CartState }) => state.cart.cart;
 export const selectCartLoading = (state: { cart: CartState }) => state.cart.loading;
 export const selectCartError = (state: { cart: CartState }) => state.cart.error;
-export const selectCartItemsCount = (state: { cart: CartState }) => 
-  state.cart.cart?.count || 0;
-export const selectCartTotal = (state: { cart: CartState }) => 
-  state.cart.cart?.total || 0;
 export const selectCartNotification = (state: { cart: CartState }) => 
   state.cart.notification;
+
+// Memoized selectors to prevent unnecessary rerenders
+export const selectCartItemsCount = createSelector(
+  [selectCart],
+  (cart) => cart?.count || 0
+);
+
+export const selectCartCount = createSelector(
+  [selectCart],
+  (cart) => cart?.count || 0
+);
+
+export const selectCartTotal = createSelector(
+  [selectCart],
+  (cart) => cart?.total || 0
+);
+
+export const selectCartItems = createSelector(
+  [selectCart],
+  (cart) => cart?.items || []
+);
 
 export default cartSlice.reducer; 

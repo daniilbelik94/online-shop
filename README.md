@@ -101,6 +101,10 @@
 - **👤 Profilmanagement** - Persönliche Daten verwalten
 - **🔑 Passwort-Reset** - Sichere Passwort-Wiederherstellung
 - **📧 E-Mail-Verifizierung** - Bestätigung der E-Mail-Adresse
+- **Adressverwaltung** - Lieferadressen hinzufügen und bearbeiten
+- **Bestellhistorie & Stornierung** - Bestellungen einsehen und stornieren
+- **Wunschliste** - Produkte auf einer Wunschliste speichern und verwalten
+- **E-Mail-Benachrichtigungen** - Bestellbestätigungen und Status-Updates (in Kürze)
 
 </details>
 
@@ -115,6 +119,7 @@
 - **🔒 Middleware** - Authentifizierung und Autorisierung
 - **📝 API-Dokumentation** - Vollständig dokumentierte Endpunkte
 - **⚡ Optimierte Queries** - Effiziente Datenbankabfragen
+- **🛡️ Schutz vor Brute-Force-Angriffen** (in Kürze)
 
 </details>
 
@@ -138,7 +143,7 @@
 - **📊 Optimierte Indizes** - Schnelle Abfragen
 - **🔄 Migrationen** - Versionierte Datenbankschemas
 - **💾 Transaktionen** - ACID-konforme Datenoperationen
-- **🔍 Full-Text Search** - Erweiterte Suchfunktionen
+- **🔍 Erweiterte Suchfunktionen** (in Kürze)
 
 </details>
 
@@ -166,6 +171,9 @@ Swiper (Karussells)
 React Hook Form
 React Query
 Framer Motion
+
+// Zusätzliche Features
+Uptime Monitoring
 ```
 
 </td>
@@ -803,3 +811,21 @@ Dieses Projekt ist unter der MIT-Lizenz lizenziert - siehe [LICENSE](LICENSE) f�
 [![Deploy Your Own](https://img.shields.io/badge/🚀_Deploy_Your_Own-Get_Started-success?style=for-the-badge)](QUICK_DEPLOY.md)
 
 </div>
+
+---
+
+## 📝 Zusammenfassung der letzten Änderungen
+
+### 📅 **27.07.2024: UI/UX-Verbesserungen**
+
+In dieser Sitzung wurden wesentliche Verbesserungen an der Benutzeroberfläche und dem Benutzererlebnis vorgenommen, insbesondere auf der Produktdetailseite und im Wunschlisten-Drawer.
+
+- **Produktdetailseite (`ProductDetailPage.tsx`):**
+
+  - Die Bildergalerie wurde vergrößert, um Produkte besser darzustellen.
+  - Das Layout wurde angepasst, um dem Bild mehr Platz zu geben und es besser zu zentrieren.
+  - Die Schaltflächenstile wurden vereinheitlicht, um dem Design der gesamten Website (z. B. der Produktkarten) zu entsprechen.
+
+- **Wunschlisten-Drawer (`WishlistDrawer.tsx`):**
+  - Der ausziehbare Wunschlisten-Drawer wurde komplett neugestaltet, um dem modernen Design des Warenkorbs zu entsprechen.
+  - Dies umfasst einen neuen Header, ein kartenbasiertes Layout für Artikel, einen Footer mit Navigationsschaltfläche und eine verbesserte Ansicht für eine leere Wunschliste.

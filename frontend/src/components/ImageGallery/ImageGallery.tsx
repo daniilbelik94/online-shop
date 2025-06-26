@@ -89,7 +89,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt, productName })
             alt={`${alt} - Image ${currentImageIndex + 1}`}
             style={{
               width: '100%',
-              height: isMobile ? '300px' : '400px',
+              height: isMobile ? '400px' : '600px',
               objectFit: 'cover',
               display: 'block',
             }}

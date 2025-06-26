@@ -1,26 +1,572 @@
-import React from 'react';
-import { Box, Typography, Container } from '@mui/material';
+import React, { useState } from 'react';
+import { 
+  Box, 
+  Typography, 
+  Container, 
+  Grid, 
+  Link, 
+  IconButton, 
+  TextField, 
+  Button, 
+  Paper,
+  Divider,
+  Stack,
+  Chip,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Alert,
+  Snackbar,
+  useTheme,
+  useMediaQuery,
+} from '@mui/material';
+import {
+  Facebook as FacebookIcon,
+  Twitter as TwitterIcon,
+  Instagram as InstagramIcon,
+  LinkedIn as LinkedInIcon,
+  YouTube as YouTubeIcon,
+  Pinterest as PinterestIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  LocationOn as LocationIcon,
+  Schedule as ScheduleIcon,
+  Send as SendIcon,
+  Favorite as FavoriteIcon,
+  Shield as ShieldIcon,
+  LocalShipping as ShippingIcon,
+  Refresh as RefreshIcon,
+  CreditCard as CreditCardIcon,
+  Security as SecurityIcon,
+  Home as HomeIcon,
+  Storefront as ProductsIcon,
+  Info as InfoIcon,
+  Help as HelpIcon,
+  Policy as PolicyIcon,
+  Gavel as TermsIcon,
+  PrivacyTip as PrivacyIcon,
+  ContactSupport as ContactIcon,
+  TrendingUp as TrendingIcon,
+  Star as StarIcon,
+  Verified as VerifiedIcon,
+} from '@mui/icons-material';
+import { Link as RouterLink } from 'react-router-dom';
 
 const Footer: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [email, setEmail] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email.trim() && email.includes('@')) {
+      setSubscribed(true);
+      setShowAlert(true);
+      setEmail('');
+      setTimeout(() => setShowAlert(false), 5000);
+    }
+  };
+
+  const quickLinks = [
+    { label: 'Home', path: '/', icon: <HomeIcon /> },
+    { label: 'Products', path: '/products', icon: <ProductsIcon /> },
+    { label: 'About Us', path: '/about', icon: <InfoIcon /> },
+    { label: 'Contact', path: '/contact', icon: <ContactIcon /> },
+    { label: 'Help Center', path: '/help', icon: <HelpIcon /> },
+  ];
+
+  const categories = [
+    { label: 'Electronics', path: '/products?category=electronics' },
+    { label: 'Clothing', path: '/products?category=clothing' },
+    { label: 'Books', path: '/products?category=books' },
+    { label: 'Home & Garden', path: '/products?category=home-garden' },
+    { label: 'Sports', path: '/products?category=sports' },
+  ];
+
+  const legal = [
+    { label: 'Privacy Policy', path: '/privacy', icon: <PrivacyIcon /> },
+    { label: 'Terms of Service', path: '/terms', icon: <TermsIcon /> },
+    { label: 'Refund Policy', path: '/refunds', icon: <RefreshIcon /> },
+    { label: 'Shipping Policy', path: '/shipping', icon: <ShippingIcon /> },
+    { label: 'Cookie Policy', path: '/cookies', icon: <PolicyIcon /> },
+  ];
+
+  const features = [
+    { 
+      icon: <ShippingIcon />, 
+      title: 'Free Shipping', 
+      description: 'Orders over $50' 
+    },
+    { 
+      icon: <RefreshIcon />, 
+      title: 'Easy Returns', 
+      description: '30-day return policy' 
+    },
+    { 
+      icon: <SecurityIcon />, 
+      title: 'Secure Payment', 
+      description: 'SSL encrypted' 
+    },
+    { 
+      icon: <VerifiedIcon />, 
+      title: 'Quality Guarantee', 
+      description: 'Authentic products' 
+    },
+  ];
+
+  const socialMedia = [
+    { icon: <FacebookIcon />, url: 'https://facebook.com/shophub', label: 'Facebook' },
+    { icon: <TwitterIcon />, url: 'https://twitter.com/shophub', label: 'Twitter' },
+    { icon: <InstagramIcon />, url: 'https://instagram.com/shophub', label: 'Instagram' },
+    { icon: <LinkedInIcon />, url: 'https://linkedin.com/company/shophub', label: 'LinkedIn' },
+    { icon: <YouTubeIcon />, url: 'https://youtube.com/shophub', label: 'YouTube' },
+    { icon: <PinterestIcon />, url: 'https://pinterest.com/shophub', label: 'Pinterest' },
+  ];
+
   return (
-    <Box
-      component="footer"
-      sx={{
-        backgroundColor: 'primary.dark',
+    <>
+      <Snackbar
+        open={showAlert}
+        autoHideDuration={5000}
+        onClose={() => setShowAlert(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setShowAlert(false)} 
+          severity="success"
+          sx={{ width: '100%' }}
+        >
+          🎉 Successfully subscribed to our newsletter! Welcome to ShopHub family!
+        </Alert>
+      </Snackbar>
+
+      {/* Features Section */}
+      <Box sx={{ 
+        bgcolor: 'grey.50', 
+        py: { xs: 3, md: 4 },
+        borderTop: '1px solid',
+        borderColor: 'grey.200'
+      }}>
+        <Container maxWidth="xl">
+          <Grid container spacing={3}>
+            {features.map((feature, index) => (
+              <Grid item xs={6} md={3} key={index}>
+                <Box sx={{ 
+                  textAlign: 'center',
+                  p: { xs: 2, md: 3 },
+                  borderRadius: 2,
+                  bgcolor: 'white',
+                  boxShadow: 1,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: 3,
+                  }
+                }}>
+                  <Box sx={{ 
+                    width: 60,
+                    height: 60,
+                    borderRadius: '50%',
+                    bgcolor: 'primary.main',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 2,
+                    color: 'white'
+                  }}>
+                    {feature.icon}
+                  </Box>
+                  <Typography variant="h6" fontWeight="bold" gutterBottom>
+                    {feature.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {feature.description}
+                  </Typography>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* Newsletter Section */}
+      <Box sx={{ 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         color: 'white',
-        py: 3,
-        mt: 'auto',
-      }}
-    >
-      <Container maxWidth="lg">
-        <Typography variant="body2" align="center">
-          © 2024 E-Commerce Platform. All rights reserved.
-        </Typography>
-        <Typography variant="body2" align="center" sx={{ mt: 1 }}>
-          Built with React, TypeScript, PHP, and PostgreSQL
-        </Typography>
-      </Container>
-    </Box>
+        py: { xs: 4, md: 6 }
+      }}>
+        <Container maxWidth="md">
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h4" fontWeight="bold" gutterBottom>
+              📬 Stay Updated!
+            </Typography>
+            <Typography variant="h6" sx={{ mb: 3, opacity: 0.9 }}>
+              Subscribe to our newsletter for exclusive deals and latest updates
+            </Typography>
+            
+            <Box 
+              component="form" 
+              onSubmit={handleNewsletterSubmit}
+              sx={{ 
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: 2,
+                maxWidth: 500,
+                mx: 'auto',
+                mb: 3
+              }}
+            >
+              <TextField
+                fullWidth
+                type="email"
+                placeholder="Enter your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderRadius: 2,
+                    '& fieldset': {
+                      borderColor: 'transparent',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.5)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: 'white',
+                    },
+                  }
+                }}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                size="large"
+                endIcon={<SendIcon />}
+                sx={{
+                  bgcolor: 'rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  px: 4,
+                  py: 1.5,
+                  borderRadius: 2,
+                  minWidth: 120,
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.3)',
+                  }
+                }}
+              >
+                Subscribe
+              </Button>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Chip
+                label="📧 Weekly deals"
+                sx={{ 
+                  bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                  color: 'white',
+                  fontWeight: 'bold'
+                }}
+              />
+              <Chip
+                label="🎁 Exclusive offers"
+                sx={{ 
+                  bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                  color: 'white',
+                  fontWeight: 'bold'
+                }}
+              />
+              <Chip
+                label="🔔 New arrivals"
+                sx={{ 
+                  bgcolor: 'rgba(255, 255, 255, 0.2)', 
+                  color: 'white',
+                  fontWeight: 'bold'
+                }}
+              />
+            </Box>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* Main Footer */}
+      <Box
+        component="footer"
+        sx={{
+          bgcolor: 'grey.900',
+          color: 'white',
+          py: { xs: 4, md: 6 },
+        }}
+      >
+        <Container maxWidth="xl">
+          <Grid container spacing={4}>
+            {/* Company Info */}
+            <Grid item xs={12} md={3}>
+              <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <Box sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.5rem'
+                  }}>
+                    🛍️
+                  </Box>
+                  <Typography variant="h5" fontWeight="bold">
+                    ShopHub
+                  </Typography>
+                </Box>
+                <Typography variant="body2" sx={{ mb: 3, opacity: 0.8, lineHeight: 1.6 }}>
+                  Your trusted online shopping destination. We bring you the best products 
+                  at unbeatable prices with exceptional customer service.
+                </Typography>
+                
+                {/* Contact Info */}
+                <Stack spacing={1}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PhoneIcon fontSize="small" />
+                    <Typography variant="body2">+1 (555) 123-4567</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <EmailIcon fontSize="small" />
+                    <Typography variant="body2">support@shophub.com</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <LocationIcon fontSize="small" />
+                    <Typography variant="body2">123 Commerce St, City, State 12345</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ScheduleIcon fontSize="small" />
+                    <Typography variant="body2">Mon-Fri: 9AM-6PM EST</Typography>
+                  </Box>
+                </Stack>
+              </Box>
+            </Grid>
+
+            {/* Quick Links */}
+            <Grid item xs={12} sm={6} md={2}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>
+                Quick Links
+              </Typography>
+              <List dense>
+                {quickLinks.map((link) => (
+                  <ListItem key={link.path} disablePadding>
+                    <Link
+                      component={RouterLink}
+                      to={link.path}
+                      color="inherit"
+                      underline="hover"
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        py: 0.5,
+                        opacity: 0.8,
+                        '&:hover': { opacity: 1 }
+                      }}
+                    >
+                      {link.icon}
+                      <Typography variant="body2">{link.label}</Typography>
+                    </Link>
+                  </ListItem>
+                ))}
+              </List>
+            </Grid>
+
+            {/* Categories */}
+            <Grid item xs={12} sm={6} md={2}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>
+                Categories
+              </Typography>
+              <List dense>
+                {categories.map((category) => (
+                  <ListItem key={category.path} disablePadding>
+                    <Link
+                      component={RouterLink}
+                      to={category.path}
+                      color="inherit"
+                      underline="hover"
+                      sx={{ 
+                        py: 0.5,
+                        opacity: 0.8,
+                        '&:hover': { opacity: 1 }
+                      }}
+                    >
+                      <Typography variant="body2">{category.label}</Typography>
+                    </Link>
+                  </ListItem>
+                ))}
+              </List>
+            </Grid>
+
+            {/* Legal */}
+            <Grid item xs={12} sm={6} md={2}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>
+                Legal & Policies
+              </Typography>
+              <List dense>
+                {legal.map((item) => (
+                  <ListItem key={item.path} disablePadding>
+                    <Link
+                      component={RouterLink}
+                      to={item.path}
+                      color="inherit"
+                      underline="hover"
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        py: 0.5,
+                        opacity: 0.8,
+                        '&:hover': { opacity: 1 }
+                      }}
+                    >
+                      {item.icon}
+                      <Typography variant="body2">{item.label}</Typography>
+                    </Link>
+                  </ListItem>
+                ))}
+              </List>
+            </Grid>
+
+            {/* Social Media & Awards */}
+            <Grid item xs={12} md={3}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>
+                Connect With Us
+              </Typography>
+              
+              {/* Social Media Icons */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
+                {socialMedia.map((social) => (
+                  <IconButton
+                    key={social.label}
+                    href={social.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{
+                      bgcolor: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      '&:hover': {
+                        bgcolor: 'primary.main',
+                        transform: 'scale(1.1)',
+                      },
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {social.icon}
+                  </IconButton>
+                ))}
+              </Box>
+
+              {/* Awards & Certifications */}
+              <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mt: 3 }}>
+                Trusted & Certified
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+                <Chip
+                  icon={<StarIcon />}
+                  label="4.8/5 Rating"
+                  variant="outlined"
+                  sx={{ 
+                    color: 'white', 
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    '& .MuiChip-icon': { color: 'gold' }
+                  }}
+                />
+                <Chip
+                  icon={<ShieldIcon />}
+                  label="SSL Secure"
+                  variant="outlined"
+                  sx={{ 
+                    color: 'white', 
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    '& .MuiChip-icon': { color: 'green' }
+                  }}
+                />
+              </Box>
+
+              {/* Payment Methods */}
+              <Typography variant="body2" sx={{ mb: 1, opacity: 0.8 }}>
+                We accept:
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Chip
+                  label="💳 Visa"
+                  size="small"
+                  sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
+                />
+                <Chip
+                  label="💳 Mastercard"
+                  size="small"
+                  sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
+                />
+                <Chip
+                  label="💰 PayPal"
+                  size="small"
+                  sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
+                />
+                <Chip
+                  label="🍎 Apple Pay"
+                  size="small"
+                  sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
+                />
+              </Box>
+            </Grid>
+          </Grid>
+
+          <Divider sx={{ my: 4, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+
+          {/* Bottom Footer */}
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', md: 'row' },
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 2
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                © 2024 ShopHub. All rights reserved.
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  Made with
+                </Typography>
+                <FavoriteIcon sx={{ color: 'red', fontSize: '1rem' }} />
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  for our customers
+                </Typography>
+              </Box>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                Built with React, TypeScript, PHP & PostgreSQL
+              </Typography>
+              <Chip
+                label="🚀 Fast & Secure"
+                size="small"
+                sx={{ 
+                  bgcolor: 'primary.main', 
+                  color: 'white',
+                  fontWeight: 'bold'
+                }}
+              />
+            </Box>
+          </Box>
+        </Container>
+      </Box>
+    </>
   );
 };
 

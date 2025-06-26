@@ -4,14 +4,19 @@ namespace App\Application\Service;
 
 use App\Domain\Entity\User;
 use App\Domain\Repository\UserRepositoryInterface;
+use App\Domain\Service\EmailServiceInterface;
 
 class UserService
 {
     private UserRepositoryInterface $userRepository;
+    private EmailServiceInterface $emailService;
 
-    public function __construct(UserRepositoryInterface $userRepository)
-    {
+    public function __construct(
+        UserRepositoryInterface $userRepository,
+        EmailServiceInterface $emailService
+    ) {
         $this->userRepository = $userRepository;
+        $this->emailService = $emailService;
     }
 
     public function registerUser(
@@ -39,6 +44,9 @@ class UserService
 
         // Save to repository
         $this->userRepository->save($user);
+
+        // Send welcome email
+        $this->sendWelcomeEmail($user);
 
         return $user;
     }
@@ -181,5 +189,21 @@ class UserService
     public function getTotalUsersCount(): int
     {
         return $this->userRepository->countAll();
+    }
+
+    private function sendWelcomeEmail(User $user): void
+    {
+        try {
+            $userData = [
+                'first_name' => $user->getFirstName(),
+                'last_name' => $user->getLastName(),
+                'username' => $user->getUsername(),
+                'email' => $user->getEmail(),
+            ];
+
+            $this->emailService->sendWelcomeEmail($user->getEmail(), $userData);
+        } catch (\Exception $e) {
+            error_log("Failed to send welcome email to {$user->getEmail()}: " . $e->getMessage());
+        }
     }
 }

@@ -31,20 +31,20 @@ class CartService
         }
 
         $stmt = $this->pdo->prepare('
-            SELECT 
+            SELECT DISTINCT
                 ci.id,
                 ci.product_id,
                 ci.quantity,
                 ci.price as cart_price,
+                ci.created_at,
                 p.name,
                 p.slug,
                 p.price as current_price,
                 p.stock_quantity,
                 p.is_active,
-                pi.image_url
+                (SELECT image_url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) as image_url
             FROM cart_items ci
             JOIN products p ON ci.product_id = p.id
-            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
             WHERE ci.cart_id = :cart_id
             ORDER BY ci.created_at DESC
         ');

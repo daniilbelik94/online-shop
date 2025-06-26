@@ -13,7 +13,7 @@ class AuthMiddleware
         $this->authService = $authService;
     }
 
-    public function handle(string $requiredRole = null): ?array
+    public function handle(?string $requiredRole = null): ?array
     {
         $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
 

@@ -4,25 +4,25 @@ import { logout } from '../store/slices/authSlice';
 
 // Types
 export interface Category {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description?: string;
-  parent_id?: number;
+  parent_id?: string;
   created_at: string;
   updated_at: string;
   children?: Category[];
 }
 
 export interface Product {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description: string;
   short_description?: string;
   price: number;
   compare_price?: number;
-  category_id: number;
+  category_id: string;
   category?: Category;
   category_name?: string;
   brand?: string;
@@ -76,12 +76,8 @@ export interface Cart {
   cart_id: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || (
-  // Use localhost for development, Railway for production
-  window.location.hostname === 'localhost' 
-    ? 'http://localhost:8080/api'
-    : 'https://online-shop-production-9724.up.railway.app/api'
-);
+// Simplified API base URL - only localhost for development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -139,13 +135,19 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid - logout user
-      store.dispatch(logout());
-      // Don't redirect on cart operations for guests
-      if (error.config?.url?.includes('/cart') && !store.getState().auth.token) {
-        return Promise.reject(error);
+      // Only logout and redirect if this is NOT a login attempt
+      if (!error.config?.url?.includes('/auth/login')) {
+        // Token expired or invalid - logout user
+        store.dispatch(logout());
+        // Don't redirect on cart operations for guests
+        if (error.config?.url?.includes('/cart') && !store.getState().auth.token) {
+          return Promise.reject(error);
+        }
+        // Only redirect if we're not already on login page
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       }
-      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
@@ -172,6 +174,11 @@ export const authAPI = {
     last_name?: string;
     phone?: string;
   }) => api.put('/user/me', data),
+  
+  changePassword: (data: {
+    current_password: string;
+    new_password: string;
+  }) => api.post('/user/change-password', data),
 };
 
 export const adminAPI = {
@@ -211,6 +218,7 @@ export const adminAPI = {
     stock_quantity: number;
     sku?: string;
     image_url?: string;
+    images?: string[];
   }) => api.post('/admin/products', data),
   
   updateProduct: (id: string, data: {
@@ -222,6 +230,7 @@ export const adminAPI = {
     stock_quantity?: number;
     sku?: string;
     image_url?: string;
+    images?: string[];
   }) => api.put(`/admin/products/${id}`, data),
   
   deleteProduct: (id: string) => api.delete(`/admin/products/${id}`),
@@ -240,6 +249,14 @@ export const adminAPI = {
     status?: string;
     user_id?: string;
   }) => api.get('/admin/orders', { params }),
+
+  getOrderStatistics: () => api.get('/admin/orders/statistics'),
+  
+  updateOrderStatus: (orderId: string, status: string) =>
+    api.put(`/admin/orders/${orderId}/status`, { status }),
+  
+  updatePaymentStatus: (orderId: string, payment_status: string) =>
+    api.put(`/admin/orders/${orderId}/payment-status`, { payment_status }),
 };
 
 export const publicAPI = {
@@ -290,6 +307,83 @@ export const cartAPI = {
   clearCart: () => api.delete('/cart/clear'),
   
   mergeGuestCart: () => api.post('/cart/merge'),
+};
+
+// Orders API
+export const ordersAPI = {
+  getOrders: () => api.get('/orders'),
+  
+  getOrderById: (orderId: string) => api.get(`/orders/${orderId}`),
+  
+  createOrder: (orderData: {
+    items: Array<{
+      product_id: string;
+      quantity: number;
+      price: number;
+    }>;
+    shipping_address: {
+      name: string;
+      street: string;
+      city: string;
+      state: string;
+      postal_code: string;
+      country: string;
+    };
+    billing_address?: {
+      name: string;
+      street: string;
+      city: string;
+      state: string;
+      postal_code: string;
+      country: string;
+    };
+    payment_method: string;
+    shipping_method: string;
+    customer_notes?: string;
+  }) => api.post('/orders', orderData),
+  
+  cancelOrder: (orderId: string) => api.post(`/orders/${orderId}/cancel`),
+};
+
+// Wishlist API
+export const wishlistAPI = {
+  getWishlist: () => api.get('/user/wishlist'),
+  
+  addToWishlist: (productId: string | number) =>
+    api.post('/user/wishlist', { product_id: productId }),
+  
+  removeFromWishlist: (productId: string | number) =>
+    api.delete(`/user/wishlist/${productId}`),
+  
+  clearWishlist: () => api.delete('/user/wishlist'),
+};
+
+// Image upload API
+export const imageAPI = {
+  uploadSingle: (file: File) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.post('/admin/upload/image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  uploadMultiple: (files: File[]) => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('images[]', file);
+    });
+    return api.post('/admin/upload/images', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  deleteImage: (imageUrl: string) =>
+    api.delete('/admin/delete/image', { data: { image_url: imageUrl } }),
 };
 
 export default api; 

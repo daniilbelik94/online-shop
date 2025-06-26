@@ -73,7 +73,7 @@ class PostgresProductRepository implements ProductRepositoryInterface
         if ($product->getId() === null) {
             $this->insert($product);
         } else {
-            $this->update($product);
+            $this->updateProduct($product);
         }
     }
 
@@ -405,6 +405,12 @@ class PostgresProductRepository implements ProductRepositoryInterface
         return (int) $stmt->fetchColumn() > 0;
     }
 
+    public function update(Product $product): Product
+    {
+        $this->updateProduct($product);
+        return $product;
+    }
+
     private function insert(Product $product): void
     {
         $id = $this->generateUuid();
@@ -453,7 +459,7 @@ class PostgresProductRepository implements ProductRepositoryInterface
         $product->setId($id);
     }
 
-    private function update(Product $product): void
+    private function updateProduct(Product $product): void
     {
         $stmt = $this->pdo->prepare('
             UPDATE products SET

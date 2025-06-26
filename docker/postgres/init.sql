@@ -94,14 +94,28 @@ CREATE TABLE orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id),
     order_number VARCHAR(50) UNIQUE NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending',
+    status VARCHAR(20) DEFAULT 'pending', -- pending, processing, shipped, delivered, cancelled, returned
+    payment_status VARCHAR(20) DEFAULT 'pending', -- pending, paid, failed, refunded, partially_refunded
+    payment_method VARCHAR(50) DEFAULT 'pending', -- paypal, credit_card, bank_transfer, cash_on_delivery
+    shipping_method VARCHAR(100), -- standard, express, overnight, pickup
+    tracking_number VARCHAR(100),
+    transaction_id VARCHAR(100),
+    subtotal DECIMAL(10,2) NOT NULL DEFAULT 0,
+    tax_amount DECIMAL(10,2) DEFAULT 0,
+    shipping_cost DECIMAL(10,2) DEFAULT 0,
+    discount_amount DECIMAL(10,2) DEFAULT 0,
     total_amount DECIMAL(10,2) NOT NULL,
     shipping_address TEXT,
     billing_address TEXT,
-    payment_method VARCHAR(50),
-    payment_status VARCHAR(20) DEFAULT 'pending',
+    customer_notes TEXT,
+    payment_notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    shipped_at TIMESTAMP,
+    delivered_at TIMESTAMP,
+    cancelled_at TIMESTAMP,
+    return_requested_at TIMESTAMP,
+    return_completed_at TIMESTAMP
 );
 
 -- Create order_items table
@@ -111,6 +125,123 @@ CREATE TABLE order_items (
     product_id UUID REFERENCES products(id),
     quantity INTEGER NOT NULL,
     price DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create wishlist table
+CREATE TABLE wishlist (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, product_id)
+);
+
+-- Create product reviews table
+CREATE TABLE product_reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    title VARCHAR(255),
+    comment TEXT,
+    verified_purchase BOOLEAN DEFAULT false,
+    helpful_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, product_id)
+);
+
+-- Create user settings table
+CREATE TABLE user_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+    -- Notification settings
+    email_marketing BOOLEAN DEFAULT true,
+    order_updates BOOLEAN DEFAULT true,
+    security_alerts BOOLEAN DEFAULT true,
+    price_drops BOOLEAN DEFAULT false,
+    back_in_stock BOOLEAN DEFAULT false,
+    newsletter BOOLEAN DEFAULT true,
+    sms_notifications BOOLEAN DEFAULT false,
+    push_notifications BOOLEAN DEFAULT true,
+    -- Privacy settings
+    profile_visibility VARCHAR(20) DEFAULT 'private', -- public, friends, private
+    show_online_status BOOLEAN DEFAULT false,
+    share_wishlist BOOLEAN DEFAULT false,
+    allow_recommendations BOOLEAN DEFAULT true,
+    cookies_analytics BOOLEAN DEFAULT true,
+    cookies_marketing BOOLEAN DEFAULT false,
+    data_sharing BOOLEAN DEFAULT false,
+    -- Appearance settings
+    theme VARCHAR(20) DEFAULT 'light', -- light, dark, auto
+    language VARCHAR(10) DEFAULT 'en',
+    currency VARCHAR(10) DEFAULT 'USD',
+    timezone VARCHAR(50) DEFAULT 'UTC',
+    compact_mode BOOLEAN DEFAULT false,
+    animations BOOLEAN DEFAULT true,
+    high_contrast BOOLEAN DEFAULT false,
+    -- Shopping settings
+    save_for_later BOOLEAN DEFAULT true,
+    auto_add_to_wishlist BOOLEAN DEFAULT false,
+    one_click_buy BOOLEAN DEFAULT false,
+    remember_payment BOOLEAN DEFAULT false,
+    default_shipping VARCHAR(20) DEFAULT 'standard',
+    auto_apply_discounts BOOLEAN DEFAULT true,
+    -- Security settings
+    two_factor_enabled BOOLEAN DEFAULT false,
+    login_alerts BOOLEAN DEFAULT true,
+    password_expiry INTEGER DEFAULT 0, -- days, 0 = never
+    secure_checkout BOOLEAN DEFAULT true,
+    biometric_auth BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create user addresses table (enhanced)
+CREATE TABLE user_addresses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(20) DEFAULT 'shipping', -- shipping, billing, both
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    company VARCHAR(255),
+    address_line_1 VARCHAR(255) NOT NULL,
+    address_line_2 VARCHAR(255),
+    city VARCHAR(255) NOT NULL,
+    state VARCHAR(255) NOT NULL,
+    postal_code VARCHAR(20) NOT NULL,
+    country VARCHAR(255) NOT NULL,
+    phone VARCHAR(20),
+    is_default BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create notifications table
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL, -- order_update, security_alert, promotion, etc.
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    data JSONB, -- Additional data for the notification
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    read_at TIMESTAMP
+);
+
+-- Create user devices table for session management
+CREATE TABLE user_devices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    device_name VARCHAR(255),
+    device_type VARCHAR(50), -- desktop, mobile, tablet
+    browser VARCHAR(100),
+    os VARCHAR(100),
+    ip_address INET,
+    last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_current BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -266,4 +397,17 @@ CREATE INDEX idx_cart_session ON cart(session_id);
 CREATE INDEX idx_cart_items_cart ON cart_items(cart_id);
 CREATE INDEX idx_cart_items_product ON cart_items(product_id);
 CREATE INDEX idx_orders_user ON orders(user_id);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_payment_status ON orders(payment_status);
 CREATE INDEX idx_order_items_order ON order_items(order_id);
+CREATE INDEX idx_wishlist_user ON wishlist(user_id);
+CREATE INDEX idx_wishlist_product ON wishlist(product_id);
+CREATE INDEX idx_product_reviews_product ON product_reviews(product_id);
+CREATE INDEX idx_product_reviews_user ON product_reviews(user_id);
+CREATE INDEX idx_product_reviews_rating ON product_reviews(rating);
+CREATE INDEX idx_user_settings_user ON user_settings(user_id);
+CREATE INDEX idx_user_addresses_user ON user_addresses(user_id);
+CREATE INDEX idx_user_addresses_default ON user_addresses(is_default);
+CREATE INDEX idx_notifications_user ON notifications(user_id);
+CREATE INDEX idx_notifications_unread ON notifications(user_id, is_read);
+CREATE INDEX idx_user_devices_user ON user_devices(user_id);

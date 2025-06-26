@@ -17,17 +17,28 @@ import {
   useTheme,
   Card,
   CardContent,
+  IconButton,
+  Tabs,
+  Tab,
+  Tooltip,
+  Stack,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
   ShoppingCart as CartIcon,
   ArrowBack as BackIcon,
+  FavoriteBorder as FavoriteBorderIcon,
+  Favorite as FavoriteIcon,
+  Share as ShareIcon,
+  Star as StarIcon,
 } from '@mui/icons-material';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch } from '../store';
 import { addToCart } from '../store/slices/cartSlice';
+import { selectIsAuthenticated } from '../store/slices/authSlice';
+import { selectIsInWishlist, addToWishlist, removeFromWishlist } from '../store/slices/wishlistSlice';
 import { publicAPI, Product } from '../lib/api';
 import ImageGallery from '../components/ImageGallery';
 
@@ -38,12 +49,17 @@ const ProductDetailPage: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const dispatch = useDispatch<AppDispatch>();
+  const isAuthenticated = useSelector(selectIsAuthenticated);
   
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [tabValue, setTabValue] = useState(0);
+
+  // Wishlist status
+  const isInWishlist = useSelector((state: any) => product ? selectIsInWishlist(state, product.id) : false);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -92,6 +108,23 @@ const ProductDetailPage: React.FC = () => {
     }
   };
 
+  const handleWishlistToggle = async () => {
+    if (!product) return;
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    try {
+      if (isInWishlist) {
+        await dispatch(removeFromWishlist(product.id)).unwrap();
+      } else {
+        await dispatch(addToWishlist(product.id)).unwrap();
+      }
+    } catch (e) {
+      console.error('Wishlist update failed:', e);
+    }
+  };
+
   const formatPrice = (price: number | undefined | null) => {
     if (price == null || isNaN(Number(price))) {
       return '$0.00';
@@ -106,6 +139,14 @@ const ProductDetailPage: React.FC = () => {
     if (quantity === 0) return { label: 'Out of Stock', color: 'error' as const };
     if (quantity <= 5) return { label: `Only ${quantity} left`, color: 'warning' as const };
     return { label: 'In Stock', color: 'success' as const };
+  };
+
+  const TabPanel: React.FC<{ index: number; value: number; children: React.ReactNode }> = ({ index, value, children }) => {
+    return (
+      <Box hidden={value !== index} sx={{ mt: 2 }}>
+        {value === index && <Box>{children}</Box>}
+      </Box>
+    );
   };
 
   if (loading) {
@@ -178,7 +219,7 @@ const ProductDetailPage: React.FC = () => {
 
       <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
         {/* Product Image */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={7} sx={{ display: 'flex', alignItems: 'center' }}>
           <ImageGallery 
             images={product.images && product.images.length > 0 
               ? product.images.map(img => typeof img === 'string' ? img : img.image_url)
@@ -192,8 +233,8 @@ const ProductDetailPage: React.FC = () => {
         </Grid>
 
         {/* Product Info */}
-        <Grid item xs={12} md={6}>
-          <Box sx={{ px: { xs: 1, sm: 0 } }}>
+        <Grid item xs={12} md={5}>
+          <Box sx={{ px: { xs: 1, sm: 2 } }}>
             {/* Product Name and Brand */}
             <Typography 
               variant={isSmallMobile ? "h5" : isMobile ? "h4" : "h3"} 
@@ -235,7 +276,7 @@ const ProductDetailPage: React.FC = () => {
 
             <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
 
-            {/* Price */}
+            {/* Price & Rating */}
             <Typography 
               variant={isSmallMobile ? "h5" : isMobile ? "h4" : "h3"} 
               color="primary" 
@@ -247,6 +288,30 @@ const ProductDetailPage: React.FC = () => {
             >
               {formatPrice(product.price)}
             </Typography>
+
+            {product.compare_price && product.compare_price > product.price && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Typography 
+                  variant="body1" 
+                  sx={{ textDecoration: 'line-through', color: 'text.secondary' }}
+                >
+                  {formatPrice(product.compare_price)}
+                </Typography>
+                <Chip 
+                  label={`-${Math.round(((product.compare_price - product.price) / product.compare_price) * 100)}%`} 
+                  color="error" 
+                  size="small" 
+                />
+              </Box>
+            )}
+
+            {/* Ratings placeholder */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+              {[1,2,3,4,5].map((i) => (
+                <StarIcon key={i} fontSize="small" color={i <= 4 ? 'warning' : 'disabled'} />
+              ))}
+              <Typography variant="caption" color="text.secondary">(120 reviews)</Typography>
+            </Box>
 
             {/* Stock Status */}
             <Box sx={{ mb: { xs: 2, sm: 3 } }}>
@@ -261,59 +326,51 @@ const ProductDetailPage: React.FC = () => {
               />
             </Box>
 
-            {/* Description */}
-            <Card 
-              sx={{ 
-                mb: { xs: 2, sm: 3 }, 
-                backgroundColor: '#f8f9fa',
-                border: '1px solid #e9ecef',
-                borderRadius: 2,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-              }}
-            >
-              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                <Typography 
-                  variant="h6" 
-                  gutterBottom
-                  sx={{
-                    fontSize: { xs: '1rem', sm: '1.125rem' },
-                    fontWeight: 'bold',
-                    color: 'primary.main',
-                    mb: 2
-                  }}
-                >
-                  Description
-                </Typography>
-                <Typography 
-                  variant="body1" 
-                  sx={{
-                    fontSize: { xs: '0.875rem', sm: '1rem' },
-                    lineHeight: 1.8,
-                    color: 'text.primary',
-                    whiteSpace: 'pre-line', // Preserve line breaks
-                    '& p': {
-                      marginBottom: '1em',
-                    }
-                  }}
-                  component="div"
-                >
-                  {product.description?.split('\n').map((paragraph, index) => (
-                    <Typography
-                      key={index}
-                      variant="body1"
-                      paragraph
-                      sx={{
-                        fontSize: { xs: '0.875rem', sm: '1rem' },
-                        lineHeight: 1.8,
-                        mb: paragraph.trim() ? 1.5 : 0
-                      }}
-                    >
+            {/* Tabs for description/details/reviews */}
+            <Tabs value={tabValue} onChange={(_, v)=>setTabValue(v)} sx={{ mb: 2 }}>
+              <Tab label="Description" />
+              <Tab label="Details" />
+              <Tab label="Reviews" />
+            </Tabs>
+
+            <TabPanel value={tabValue} index={0}>
+              <Card sx={{ backgroundColor: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: 2 }}>
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  {product.description?.split('\n').map((paragraph, idx) => (
+                    <Typography key={idx} variant="body1" paragraph sx={{ lineHeight: 1.8 }}>
                       {paragraph}
                     </Typography>
                   ))}
-                </Typography>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={1}>
+              <Card sx={{ backgroundColor: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: 2 }}>
+                <CardContent>
+                  <Stack spacing={1}>
+                    <Box sx={{ display:'flex', justifyContent:'space-between' }}>
+                      <Typography color="text.secondary">Brand</Typography><Typography>{product.brand||'N/A'}</Typography>
+                    </Box>
+                    <Box sx={{ display:'flex', justifyContent:'space-between' }}>
+                      <Typography color="text.secondary">SKU</Typography><Typography>{product.sku}</Typography>
+                    </Box>
+                    <Box sx={{ display:'flex', justifyContent:'space-between' }}>
+                      <Typography color="text.secondary">Category</Typography><Typography>{product.category?.name}</Typography>
+                    </Box>
+                    <Box sx={{ display:'flex', justifyContent:'space-between' }}>
+                      <Typography color="text.secondary">Stock</Typography><Typography>{product.stock_quantity}</Typography>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={2}>
+              <Card sx={{ p:2, textAlign:'center', border:'1px dashed', borderColor:'divider' }}>
+                <Typography variant="body1">Reviews feature coming soon! ⭐️</Typography>
+              </Card>
+            </TabPanel>
 
             {/* Quantity Selector */}
             {product.stock_quantity > 0 && (
@@ -378,96 +435,73 @@ const ProductDetailPage: React.FC = () => {
               </Box>
             )}
 
-            {/* Add to Cart Button */}
-            <Box sx={{ 
-              display: 'flex', 
-              gap: { xs: 1, sm: 2 },
-              flexDirection: { xs: 'column', sm: 'row' }
-            }}>
-              <Button
-                variant="contained"
-                size={isMobile ? "medium" : "large"}
-                startIcon={<CartIcon />}
-                onClick={handleAddToCart}
-                disabled={product.stock_quantity === 0 || addingToCart}
-                sx={{ 
-                  flex: 1,
-                  py: { xs: 1, sm: 1.5 },
-                  fontSize: { xs: '0.875rem', sm: '1rem' }
-                }}
-              >
-                {addingToCart ? 'Adding...' : 
-                 product.stock_quantity === 0 ? 'Out of Stock' : 
-                 `Add ${quantity} to Cart`}
-              </Button>
-              
-              <Button
-                variant="outlined"
-                size={isMobile ? "medium" : "large"}
-                onClick={() => navigate('/products')}
-                sx={{ 
-                  minWidth: { xs: 'auto', sm: 140 },
-                  py: { xs: 1, sm: 1.5 },
-                  fontSize: { xs: '0.875rem', sm: '1rem' }
-                }}
-              >
-                Continue Shopping
-              </Button>
-            </Box>
+            {/* Action Buttons */}
+            <Stack spacing={1.5} sx={{ mt: 3 }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        startIcon={<CartIcon />}
+                        onClick={handleAddToCart}
+                        disabled={product.stock_quantity === 0 || addingToCart}
+                        sx={{
+                            fontWeight: 'bold',
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            py: 1.2,
+                            flex: 1,
+                        }}
+                    >
+                        {addingToCart ? 'Adding...' : product.stock_quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+                    </Button>
+                    <Button
+                        variant={isInWishlist ? 'contained' : 'outlined'}
+                        color="secondary"
+                        startIcon={isInWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                        onClick={handleWishlistToggle}
+                        sx={{
+                            fontWeight: 'bold',
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            py: 1.2,
+                        }}
+                    >
+                        {isInWishlist ? 'In Wishlist' : 'Add to Wishlist'}
+                    </Button>
+                </Stack>
+                <Button
+                    fullWidth
+                    variant="outlined"
+                    color="primary"
+                    onClick={() => navigate('/products')}
+                    sx={{
+                        fontWeight: 'bold',
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        py: 1.2,
+                    }}
+                >
+                    Continue Shopping
+                </Button>
+            </Stack>
 
-            {/* Additional Product Info */}
-            <Box sx={{ mt: { xs: 3, sm: 4 } }}>
-              <Typography 
-                variant="h6" 
-                gutterBottom
-                sx={{
-                  fontSize: { xs: '1rem', sm: '1.25rem' },
-                  fontWeight: 'bold'
-                }}
-              >
-                Product Details
-              </Typography>
-              <Box sx={{ 
-                display: 'grid', 
-                gap: { xs: 0.5, sm: 1 },
-                fontSize: { xs: '0.875rem', sm: '1rem' }
-              }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Brand:
-                  </Typography>
-                  <Typography variant="body2">
-                    {product.brand || 'N/A'}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    SKU:
-                  </Typography>
-                  <Typography variant="body2">
-                    {product.sku}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Stock:
-                  </Typography>
-                  <Typography variant="body2">
-                    {product.stock_quantity} units
-                  </Typography>
-                </Box>
-                {product.category && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Category:
-                    </Typography>
-                    <Typography variant="body2">
-                      {product.category.name}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-            </Box>
+            {/* Trust Badges & Share */}
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 3 }}>
+                 <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Tooltip title="Free shipping on orders $50+">
+                        <Chip icon={<CartIcon fontSize='small'/>} label="Free Shipping" variant="outlined" size="small" />
+                    </Tooltip>
+                    <Tooltip title="30-day hassle-free returns">
+                        <Chip icon={<ShareIcon fontSize='small'/>} label="Easy Returns" variant="outlined" size="small" />
+                    </Tooltip>
+                </Stack>
+                 <IconButton
+                    color="default"
+                    onClick={() => navigator.share && navigator.share({ url: window.location.href, title: product.name })}
+                >
+                    <ShareIcon />
+                </IconButton>
+            </Stack>
           </Box>
         </Grid>
       </Grid>

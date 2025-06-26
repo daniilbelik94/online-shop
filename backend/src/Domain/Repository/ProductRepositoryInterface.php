@@ -41,4 +41,6 @@ interface ProductRepositoryInterface
     public function findAdvanced(array $filters = [], string $sort = 'created_at_desc', int $limit = 50, int $offset = 0): array;
 
     public function countAdvanced(array $filters = []): int;
+
+    public function update(Product $product): Product;
 }

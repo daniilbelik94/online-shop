@@ -172,50 +172,75 @@ class UserController
                 return;
             }
 
-            // TODO: Implement order service and get user orders
-            // For now, return mock data
-            $orders = [
-                [
-                    'id' => 1,
-                    'order_number' => 'ORD-2024-001',
-                    'date' => '2024-06-20',
-                    'status' => 'delivered',
-                    'total' => 299.99,
-                    'items_count' => 2,
-                    'items' => [
-                        [
-                            'product_name' => 'iPhone 15 Pro',
-                            'quantity' => 1,
-                            'price' => 199.99
-                        ],
-                        [
-                            'product_name' => 'AirPods Pro',
-                            'quantity' => 1,
-                            'price' => 100.00
-                        ]
-                    ]
-                ],
-                [
-                    'id' => 2,
-                    'order_number' => 'ORD-2024-002',
-                    'date' => '2024-06-18',
-                    'status' => 'shipped',
-                    'total' => 149.99,
-                    'items_count' => 1,
-                    'items' => [
-                        [
-                            'product_name' => 'Dell XPS 13 Plus',
-                            'quantity' => 1,
-                            'price' => 149.99
-                        ]
-                    ]
-                ]
-            ];
+            // Use the OrderService to get real user orders
+            $orderService = new \App\Application\Service\OrderService(
+                new \App\Infrastructure\Persistence\Postgres\PostgresOrderRepository($GLOBALS['pdo']),
+                new \App\Infrastructure\Persistence\Postgres\PostgresUserRepository($GLOBALS['pdo']),
+                new \App\Infrastructure\Persistence\Postgres\PostgresProductRepository($GLOBALS['pdo']),
+                new \App\Application\Service\CartService(
+                    new \App\Infrastructure\Persistence\Postgres\PostgresUserRepository($GLOBALS['pdo'])
+                ),
+                new \App\Infrastructure\Service\EmailService()
+            );
 
-            JsonResponse::success($orders);
+            $page = (int) ($_GET['page'] ?? 1);
+            $limit = (int) ($_GET['limit'] ?? 20);
+
+            $result = $orderService->getUserOrders($userId, [], $page, $limit);
+
+            JsonResponse::success($result);
         } catch (\Exception $e) {
             error_log("Error getting user orders: " . $e->getMessage());
             JsonResponse::error('Failed to get orders');
+        }
+    }
+
+    /**
+     * Get single order details
+     */
+    public function getOrderDetails(): void
+    {
+        try {
+            $userId = $_SESSION['user_id'] ?? null;
+
+            if (!$userId) {
+                JsonResponse::unauthorized('User not authenticated');
+                return;
+            }
+
+            $orderId = $_GET['order_id'] ?? null;
+            if (!$orderId) {
+                JsonResponse::badRequest('Order ID is required');
+                return;
+            }
+
+            $orderService = new \App\Application\Service\OrderService(
+                new \App\Infrastructure\Persistence\Postgres\PostgresOrderRepository($GLOBALS['pdo']),
+                new \App\Infrastructure\Persistence\Postgres\PostgresUserRepository($GLOBALS['pdo']),
+                new \App\Infrastructure\Persistence\Postgres\PostgresProductRepository($GLOBALS['pdo']),
+                new \App\Application\Service\CartService(
+                    new \App\Infrastructure\Persistence\Postgres\PostgresUserRepository($GLOBALS['pdo'])
+                ),
+                new \App\Infrastructure\Service\EmailService()
+            );
+
+            $order = $orderService->getOrderById($orderId);
+
+            if (!$order) {
+                JsonResponse::notFound('Order not found');
+                return;
+            }
+
+            // Verify order belongs to user
+            if ($order['user_id'] !== $userId) {
+                JsonResponse::unauthorized('Access denied');
+                return;
+            }
+
+            JsonResponse::success($order);
+        } catch (\Exception $e) {
+            error_log("Error getting order details: " . $e->getMessage());
+            JsonResponse::error('Failed to get order details');
         }
     }
 }

@@ -1,23 +1,24 @@
 // User types
 export interface User {
-  id: number;
+  id: string;
   email: string;
   first_name: string;
   last_name: string;
   phone?: string;
   created_at?: string;
   role?: string;
+  username?: string;
 }
 
 // Product types
 export interface Product {
-  id: number;
+  id: string;
   name: string;
   description: string;
   short_description?: string;
   price: number;
   compare_price?: number;
-  category_id: number;
+  category_id: string;
   category_name?: string;
   brand?: string;
   stock_quantity: number;
@@ -33,19 +34,19 @@ export interface Product {
 
 // Category types
 export interface Category {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description?: string;
-  parent_id?: number;
+  parent_id?: string;
   created_at?: string;
   updated_at?: string;
 }
 
 // Cart types
 export interface CartItem {
-  id: number;
-  product_id: number;
+  id: string;
+  product_id: string;
   product: Product;
   quantity: number;
   price: number;
@@ -53,20 +54,43 @@ export interface CartItem {
 
 // Order types
 export interface Order {
-  id: number;
+  id: string;
   order_number: string;
-  date: string;
+  date?: string;
+  created_at?: string;
+  updated_at?: string;
+  shipped_at?: string;
+  delivered_at?: string;
   status: string;
-  total: number;
+  payment_status?: string;
+  total?: number;
+  total_amount?: number;
+  subtotal?: number;
+  shipping_cost?: number;
+  tax_amount?: number;
+  discount_amount?: number;
   items_count: number;
   items?: OrderItem[];
+  payment_method?: string;
+  shipping_method?: string;
+  shipping_address?: string;
+  billing_address?: string;
+  customer_notes?: string;
+  customer_email?: string;
+  tracking_number?: string;
+  transaction_id?: string;
+  payment_notes?: string;
+  can_be_cancelled?: boolean;
 }
 
 export interface OrderItem {
-  id: number;
-  order_id: number;
-  product_id: number;
-  product: Product;
+  id: string;
+  order_id: string;
+  product_id: string;
+  product?: Product;
+  product_name: string;
+  product_image?: string;
+  product_attributes?: string;
   quantity: number;
   price: number;
 }
@@ -139,7 +163,7 @@ export interface CreateProductData {
   short_description?: string;
   price: number;
   compare_price?: number;
-  category_id: number;
+  category_id: string;
   brand?: string;
   stock_quantity: number;
   sku?: string;
@@ -149,5 +173,5 @@ export interface CreateProductData {
 }
 
 export interface UpdateProductData extends Partial<CreateProductData> {
-  id: number;
+  id: string;
 } 

@@ -21,6 +21,21 @@ import {
   Badge,
   Snackbar,
   Alert,
+  Avatar,
+  Divider,
+  Paper,
+  ListItemButton,
+  Chip,
+  LinearProgress,
+  Card,
+  CardContent,
+  Popper,
+  ClickAwayListener,
+  Grow,
+  MenuList,
+  Stack,
+  Tooltip,
+  Link as MuiLink,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -29,8 +44,28 @@ import {
   Menu as MenuIcon,
   Home as HomeIcon,
   Storefront as ProductsIcon,
+  Favorite as FavoriteIcon,
+  FavoriteBorder as FavoriteBorderIcon,
+  Person as PersonIcon,
+  Settings as SettingsIcon,
+  Logout as LogoutIcon,
+  NotificationsNone as NotificationsIcon,
+  LocalOffer as OffersIcon,
+  Help as HelpIcon,
+  Close as CloseIcon,
+  TrendingUp as TrendingIcon,
+  Category as CategoryIcon,
+  KeyboardArrowDown as ArrowDownIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  LocationOn as LocationIcon,
+  Schedule as ScheduleIcon,
+  Security as SecurityIcon,
+  Language as LanguageIcon,
+  Brightness6 as ThemeIcon,
+  History as HistoryIcon,
 } from '@mui/icons-material';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout, selectUser, selectIsAuthenticated } from '../store/slices/authSlice';
 import { 
@@ -39,30 +74,46 @@ import {
   clearNotification,
   fetchCart
 } from '../store/slices/cartSlice';
+import { selectWishlistCount } from '../store/slices/wishlistSlice';
 import CartDrawer from './Cart/CartDrawer';
+import WishlistDrawer from './WishlistDrawer';
+import { publicAPI } from '../lib/api';
 
 const Header: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useSelector(selectUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const cartItemsCount = useSelector(selectCartItemsCount);
+  const wishlistCount = useSelector(selectWishlistCount);
   const notification = useSelector(selectCartNotification);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
+
+  // State
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [accountMenuAnchor, setAccountMenuAnchor] = useState<null | HTMLElement>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [wishlistDrawerOpen, setWishlistDrawerOpen] = useState(false);
+  const [categoriesMenuAnchor, setCategoriesMenuAnchor] = useState<null | HTMLElement>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [userStats, setUserStats] = useState({ orders: 0, spent: 0, points: 0 });
 
-  // Load cart on component mount
+  // Load initial data
   useEffect(() => {
     dispatch(fetchCart() as any);
-  }, [dispatch]);
+    loadCategories();
+    if (isAuthenticated) {
+      loadUserStats();
+    }
+  }, [dispatch, isAuthenticated]);
 
-  // Auto-hide notification after 3 seconds
+  // Auto-hide notification
   useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => {
@@ -71,6 +122,56 @@ const Header: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [notification, dispatch]);
+
+  // Search suggestions debounced
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.length > 2) {
+        loadSearchSuggestions();
+      } else {
+        setSearchSuggestions([]);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const loadCategories = async () => {
+    try {
+      const response = await publicAPI.getCategories();
+      setCategories(response.data?.data || []);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+    }
+  };
+
+  const loadUserStats = async () => {
+    try {
+      // Load user statistics for profile dropdown
+      const response = await fetch('/api/user/statistics', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserStats(data);
+      }
+    } catch (error) {
+      console.error('Failed to load user stats:', error);
+    }
+  };
+
+  const loadSearchSuggestions = async () => {
+    try {
+      const response = await publicAPI.getProducts({ 
+        search: searchQuery, 
+        limit: 5 
+      });
+      setSearchSuggestions(response.data?.data || []);
+    } catch (error) {
+      console.error('Failed to load search suggestions:', error);
+    }
+  };
 
   const handleLogout = () => {
     dispatch(logout());
@@ -82,50 +183,74 @@ const Header: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      const searchTerm = searchQuery.trim();
-      navigate(`/products?search=${encodeURIComponent(searchTerm)}`);
-      // Don't clear search query to avoid "flashing"
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchOpen(false);
       setMobileMenuOpen(false);
     }
   };
 
-  const handleAccountMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAccountMenuAnchor(event.currentTarget);
-  };
-
-  const handleAccountMenuClose = () => {
-    setAccountMenuAnchor(null);
-  };
-
-  const handleMobileMenuToggle = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-  };
-
-  const handleCartOpen = () => {
-    setCartDrawerOpen(true);
-    setMobileMenuOpen(false);
-  };
-
-  const handleCartClose = () => {
-    setCartDrawerOpen(false);
+  const handleSearchSuggestionClick = (product: any) => {
+    navigate(`/products/${product.slug || product.id}`);
+    setSearchOpen(false);
+    setSearchQuery('');
+    setSearchSuggestions([]);
   };
 
   const navigationItems = [
     { label: 'Home', path: '/', icon: <HomeIcon /> },
     { label: 'Products', path: '/products', icon: <ProductsIcon /> },
+    { label: 'Categories', onClick: (e: any) => setCategoriesMenuAnchor(e.currentTarget), icon: <CategoryIcon /> },
+    { label: 'Offers', path: '/offers', icon: <OffersIcon /> },
   ];
 
-  const handleNavigationClick = (item: { label: string; path: string }) => {
-    if (item.label === 'Cart') {
-      handleCartOpen();
-    } else {
-      navigate(item.path);
-      setMobileMenuOpen(false);
-    }
-  };
+  const userMenuItems = [
+    { label: 'My Profile', path: '/profile', icon: <PersonIcon /> },
+    { label: 'My Orders', path: '/profile?tab=1', icon: <HistoryIcon /> },
+    { label: 'Wishlist', onClick: () => { setWishlistDrawerOpen(true); setAccountMenuAnchor(null); }, icon: <FavoriteIcon /> },
+    { label: 'Settings', path: '/profile?tab=4', icon: <SettingsIcon /> },
+    { divider: true },
+    { label: 'Help & Support', path: '/help', icon: <HelpIcon /> },
+    { label: 'Logout', onClick: handleLogout, icon: <LogoutIcon />, color: 'error' },
+  ];
 
   return (
     <>
+      {/* Top Bar */}
+      <Box sx={{ 
+        bgcolor: 'grey.900', 
+        color: 'white', 
+        py: 0.5,
+        display: { xs: 'none', md: 'block' }
+      }}>
+        <Container maxWidth="xl">
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            fontSize: '0.875rem'
+          }}>
+            <Box sx={{ display: 'flex', gap: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <PhoneIcon fontSize="small" />
+                <Typography variant="caption">+1 (555) 123-4567</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <EmailIcon fontSize="small" />
+                <Typography variant="caption">support@ecommerce.com</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <ScheduleIcon fontSize="small" />
+                <Typography variant="caption">Mon-Fri 9AM-6PM</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Typography variant="caption">🚚 Free shipping on orders $50+</Typography>
+              <Typography variant="caption">🎁 Special offers available</Typography>
+            </Box>
+          </Box>
+        </Container>
+      </Box>
+
       {/* Notification Snackbar */}
       <Snackbar
         open={!!notification}
@@ -141,20 +266,27 @@ const Header: React.FC = () => {
         </Alert>
       </Snackbar>
 
-      <AppBar position="static" elevation={1}>
+      {/* Main Header */}
+      <AppBar 
+        position="static" 
+        elevation={0}
+        sx={{ 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderBottom: '3px solid rgba(255,255,255,0.1)'
+        }}
+      >
         <Container maxWidth="xl">
-          <Toolbar 
-            sx={{ 
-              px: { xs: 0, sm: 2 },
-              gap: { xs: 1, sm: 2 },
-              minHeight: { xs: 56, sm: 64 }
-            }}
-          >
+          <Toolbar sx={{ 
+            px: { xs: 0, sm: 2 },
+            gap: { xs: 1, sm: 2 },
+            minHeight: { xs: 64, sm: 80 },
+            py: { xs: 1, sm: 2 }
+          }}>
             {/* Mobile Menu Button */}
             {isMobile && (
               <IconButton
                 color="inherit"
-                onClick={handleMobileMenuToggle}
+                onClick={() => setMobileMenuOpen(true)}
                 sx={{ mr: 1 }}
               >
                 <MenuIcon />
@@ -162,207 +294,452 @@ const Header: React.FC = () => {
             )}
 
             {/* Logo */}
-            <Typography 
-              variant={isMobile ? "h6" : "h5"} 
-              component={Link} 
-              to="/" 
-              sx={{ 
-                textDecoration: 'none', 
-                color: 'inherit',
-                fontWeight: 'bold',
-                minWidth: 'fit-content',
-                fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem' }
-              }}
-            >
-              E-Commerce
-            </Typography>
-
-            {/* Desktop Search Bar */}
-            {!isMobile && (
-              <Box 
-                component="form" 
-                onSubmit={handleSearch}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem'
+              }}>
+                🛍️
+              </Box>
+              <Typography 
+                variant={isMobile ? "h6" : "h4"} 
+                component={Link} 
+                to="/" 
                 sx={{ 
-                  flexGrow: 1, 
-                  maxWidth: 600,
-                  mx: 3
+                  textDecoration: 'none', 
+                  color: 'inherit',
+                  fontWeight: 'bold',
+                  background: 'linear-gradient(45deg, #fff, #f0f0f0)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' }
                 }}
               >
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                      '&:hover': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                      },
-                      '&.Mui-focused': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                      },
-                      '& fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.3)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.5)',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.7)',
-                      },
-                    },
-                    '& .MuiInputBase-input': {
-                      color: 'white',
-                      '&::placeholder': {
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        opacity: 1,
-                      },
-                    },
-                  }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton 
-                          type="submit"
-                          sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
-                        >
-                          <SearchIcon />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-            )}
-
-            {/* Spacer for mobile */}
-            <Box sx={{ flexGrow: 1 }} />
+                ShopHub
+              </Typography>
+            </Box>
 
             {/* Desktop Navigation */}
             {!isMobile && (
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', gap: 1, ml: 4 }}>
                 {navigationItems.map((item) => (
-                  <Button 
-                    key={item.path}
-                    color="inherit" 
-                    component={Link} 
+                  <Button
+                    key={item.label}
+                    color="inherit"
+                    component={item.path ? Link : 'button'}
                     to={item.path}
+                    onClick={item.onClick}
+                    startIcon={item.icon}
+                    endIcon={item.label === 'Categories' ? <ArrowDownIcon /> : undefined}
+                    sx={{
+                      fontWeight: 'bold',
+                      px: 2,
+                      py: 1,
+                      borderRadius: 2,
+                      backgroundColor: location.pathname === item.path ? 'rgba(255,255,255,0.2)' : 'transparent',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        transform: 'translateY(-1px)',
+                      },
+                      transition: 'all 0.2s ease',
+                    }}
                   >
                     {item.label}
                   </Button>
                 ))}
-                
-                {/* Cart Button */}
-                <IconButton
-                  color="inherit"
-                  onClick={handleCartOpen}
-                  sx={{ ml: 1 }}
-                >
-                  <Badge badgeContent={cartItemsCount} color="error">
-                    <ShoppingCartIcon />
-                  </Badge>
-                </IconButton>
-                
-                {isAuthenticated ? (
-                  <>
-                    {(user?.is_staff || user?.is_superuser) && (
-                      <Button color="inherit" component={Link} to="/admin">
-                        Admin
-                      </Button>
-                    )}
-                    <IconButton
-                      color="inherit"
-                      onClick={handleAccountMenuOpen}
-                      sx={{ ml: 1 }}
-                    >
-                      <AccountIcon />
-                    </IconButton>
-                  </>
-                ) : (
-                  <Button 
-                    color="inherit" 
-                    onClick={handleAccountMenuOpen}
-                    startIcon={<AccountIcon />}
-                  >
-                    Account
-                  </Button>
-                )}
               </Box>
             )}
 
-            {/* Mobile Account Button */}
-            {isMobile && (
-              <IconButton
-                color="inherit"
-                onClick={handleAccountMenuOpen}
-              >
-                <AccountIcon />
-              </IconButton>
-            )}
+            <Box sx={{ flexGrow: 1 }} />
 
-            {/* Account Menu */}
-            <Menu
-              anchorEl={accountMenuAnchor}
-              open={Boolean(accountMenuAnchor)}
-              onClose={handleAccountMenuClose}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'right',
-              }}
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-            >
-              {isAuthenticated ? (
-                [
-                  <MenuItem key="welcome" disabled>
-                    Welcome, {user?.first_name}!
-                  </MenuItem>,
-                  <MenuItem key="profile" onClick={handleAccountMenuClose} component={Link} to="/profile">
-                    Profile
-                  </MenuItem>,
-                  ...(user?.is_staff || user?.is_superuser ? [
-                    <MenuItem key="admin" onClick={handleAccountMenuClose} component={Link} to="/admin">
-                      Admin Panel
-                    </MenuItem>
-                  ] : []),
-                  <MenuItem key="logout" onClick={handleLogout}>
-                    Logout
-                  </MenuItem>
-                ]
-              ) : (
-                [
-                  <MenuItem key="login" onClick={handleAccountMenuClose} component={Link} to="/login">
-                    Login
-                  </MenuItem>,
-                  <MenuItem key="register" onClick={handleAccountMenuClose} component={Link} to="/register">
-                    Sign Up
-                  </MenuItem>
-                ]
+            {/* Search Bar */}
+            <Box sx={{ 
+              position: 'relative',
+              width: { xs: '100%', sm: 400, md: 500 },
+              maxWidth: { xs: 200, sm: 400, md: 500 },
+              mx: { xs: 1, sm: 2 }
+            }}>
+              <Box component="form" onSubmit={handleSearch}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Search products, brands, categories..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setSearchOpen(true)}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      borderRadius: 3,
+                      fontSize: '0.9rem',
+                      '&:hover': {
+                        backgroundColor: 'white',
+                      },
+                      '&.Mui-focused': {
+                        backgroundColor: 'white',
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'primary.main',
+                          borderWidth: 2,
+                        }
+                      }
+                    }
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon color="action" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchQuery && (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setSearchSuggestions([]);
+                          }}
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }}
+                />
+              </Box>
+
+              {/* Search Suggestions */}
+              {searchOpen && searchSuggestions.length > 0 && (
+                <ClickAwayListener onClickAway={() => setSearchOpen(false)}>
+                  <Paper
+                    sx={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      zIndex: 1300,
+                      mt: 1,
+                      borderRadius: 2,
+                      boxShadow: 3,
+                      maxHeight: 300,
+                      overflow: 'auto'
+                    }}
+                  >
+                    <List dense>
+                      <ListItem>
+                        <ListItemText
+                          primary={`Found ${searchSuggestions.length} suggestions`}
+                          sx={{ '& .MuiListItemText-primary': { fontSize: '0.875rem', fontWeight: 'bold' } }}
+                        />
+                      </ListItem>
+                      {searchSuggestions.map((product) => (
+                        <ListItemButton
+                          key={product.id}
+                          onClick={() => handleSearchSuggestionClick(product)}
+                        >
+                          <ListItemIcon>
+                            <TrendingIcon fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={product.name}
+                            secondary={`$${product.price}`}
+                          />
+                        </ListItemButton>
+                      ))}
+                    </List>
+                  </Paper>
+                </ClickAwayListener>
               )}
-            </Menu>
+            </Box>
+
+            {/* Action Buttons */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {/* Notifications */}
+              {isAuthenticated && (
+                <Tooltip title="Notifications">
+                  <IconButton color="inherit">
+                    <Badge badgeContent={2} color="error">
+                      <NotificationsIcon />
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
+              )}
+
+              {/* Wishlist */}
+              {isAuthenticated && (
+                <Tooltip title="Wishlist">
+                  <IconButton 
+                    color="inherit"
+                    onClick={() => setWishlistDrawerOpen(true)}
+                  >
+                    <Badge badgeContent={wishlistCount} color="error">
+                      <FavoriteBorderIcon />
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
+              )}
+
+              {/* Cart */}
+              <Tooltip title="Shopping Cart">
+                <IconButton
+                  color="inherit"
+                  onClick={() => setCartDrawerOpen(true)}
+                >
+                  <Badge badgeContent={cartItemsCount} color="secondary">
+                    <ShoppingCartIcon />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
+
+              {/* User Account */}
+              {isAuthenticated ? (
+                <Box>
+                  <Button
+                    color="inherit"
+                    onClick={(e) => setAccountMenuAnchor(e.currentTarget)}
+                    startIcon={
+                      <Avatar sx={{ 
+                        width: 32, 
+                        height: 32, 
+                        fontSize: '0.875rem',
+                        backgroundColor: 'rgba(255,255,255,0.2)'
+                      }}>
+                        {user?.first_name?.[0]?.toUpperCase() || 'U'}
+                      </Avatar>
+                    }
+                    endIcon={<ArrowDownIcon />}
+                    sx={{
+                      fontWeight: 'bold',
+                      px: 2,
+                      py: 1,
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                      }
+                    }}
+                  >
+                    {!isMobile && (
+                      <Box sx={{ textAlign: 'left', ml: 1 }}>
+                        <Typography variant="body2" sx={{ lineHeight: 1.2 }}>
+                          {user?.first_name || 'User'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                          {userStats.points} pts
+                        </Typography>
+                      </Box>
+                    )}
+                  </Button>
+                </Box>
+              ) : (
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    color="inherit"
+                    component={Link}
+                    to="/auth?mode=login"
+                    sx={{
+                      fontWeight: 'bold',
+                      px: 2,
+                      py: 1,
+                      borderRadius: 2,
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                      }
+                    }}
+                  >
+                    Login
+                  </Button>
+                  <Button
+                    color="inherit"
+                    component={Link}
+                    to="/auth?mode=register"
+                    sx={{
+                      fontWeight: 'bold',
+                      px: 2,
+                      py: 1,
+                      borderRadius: 2,
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,0.3)',
+                      }
+                    }}
+                  >
+                    Sign Up
+                  </Button>
+                </Box>
+              )}
+            </Box>
           </Toolbar>
         </Container>
       </AppBar>
 
-      {/* Mobile Drawer */}
+      {/* User Account Menu */}
+      <Menu
+        anchorEl={accountMenuAnchor}
+        open={Boolean(accountMenuAnchor)}
+        onClose={() => setAccountMenuAnchor(null)}
+        PaperProps={{
+          sx: {
+            width: 280,
+            borderRadius: 2,
+            mt: 1,
+            '& .MuiMenuItem-root': {
+              px: 2,
+              py: 1,
+              borderRadius: 1,
+              mx: 1,
+              my: 0.5,
+            }
+          }
+        }}
+      >
+        {/* User Info Header */}
+        <Box sx={{ p: 2, pb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Avatar sx={{ 
+              width: 48, 
+              height: 48,
+              backgroundColor: 'primary.main'
+            }}>
+              {user?.first_name?.[0]?.toUpperCase() || 'U'}
+            </Avatar>
+            <Box>
+              <Typography variant="subtitle1" fontWeight="bold">
+                {user?.first_name} {user?.last_name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {user?.email}
+              </Typography>
+            </Box>
+          </Box>
+          
+          {/* User Stats */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 1,
+            p: 1.5,
+            bgcolor: 'grey.50',
+            borderRadius: 1,
+          }}>
+            <Box sx={{ textAlign: 'center', flex: 1 }}>
+              <Typography variant="h6" fontWeight="bold" color="primary">
+                {userStats.orders}
+              </Typography>
+              <Typography variant="caption">Orders</Typography>
+            </Box>
+            <Box sx={{ textAlign: 'center', flex: 1 }}>
+              <Typography variant="h6" fontWeight="bold" color="primary">
+                ${userStats.spent}
+              </Typography>
+              <Typography variant="caption">Spent</Typography>
+            </Box>
+            <Box sx={{ textAlign: 'center', flex: 1 }}>
+              <Typography variant="h6" fontWeight="bold" color="primary">
+                {userStats.points}
+              </Typography>
+              <Typography variant="caption">Points</Typography>
+            </Box>
+          </Box>
+        </Box>
+
+        <Divider />
+
+        {/* Menu Items */}
+        {userMenuItems.map((item, index) => (
+          item.divider ? (
+            <Divider key={index} sx={{ my: 1 }} />
+          ) : (
+            <MenuItem
+              key={item.label}
+              component={item.path ? Link : 'div'}
+              to={item.path}
+              onClick={item.onClick || (() => setAccountMenuAnchor(null))}
+              sx={{
+                color: item.color === 'error' ? 'error.main' : 'inherit',
+                '&:hover': {
+                  backgroundColor: item.color === 'error' ? 'error.light' : 'primary.light',
+                  color: item.color === 'error' ? 'error.contrastText' : 'primary.contrastText',
+                }
+              }}
+            >
+              <ListItemIcon sx={{ color: 'inherit' }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.label} />
+            </MenuItem>
+          )
+        ))}
+      </Menu>
+
+      {/* Categories Menu */}
+      <Menu
+        anchorEl={categoriesMenuAnchor}
+        open={Boolean(categoriesMenuAnchor)}
+        onClose={() => setCategoriesMenuAnchor(null)}
+        PaperProps={{
+          sx: {
+            width: 250,
+            borderRadius: 2,
+            mt: 1,
+          }
+        }}
+      >
+        <MenuItem sx={{ fontWeight: 'bold', color: 'primary.main' }} disabled>
+          Browse Categories
+        </MenuItem>
+        <Divider />
+        {categories.map((category) => (
+          <MenuItem
+            key={category.id}
+            component={Link}
+            to={`/products?category=${category.id}`}
+            onClick={() => setCategoriesMenuAnchor(null)}
+          >
+            <ListItemIcon>
+              <CategoryIcon />
+            </ListItemIcon>
+            <ListItemText primary={category.name} />
+          </MenuItem>
+        ))}
+      </Menu>
+
+      {/* Mobile Menu Drawer */}
       <Drawer
         anchor="left"
         open={mobileMenuOpen}
-        onClose={handleMobileMenuToggle}
-        sx={{
-          '& .MuiDrawer-paper': {
-            width: 280,
-            pt: 2,
-          },
+        onClose={() => setMobileMenuOpen(false)}
+        PaperProps={{
+          sx: { width: 280 }
         }}
       >
-        {/* Mobile Search */}
-        <Box sx={{ px: 2, mb: 2 }}>
-          <Box component="form" onSubmit={handleSearch}>
+        <Box sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+            <Box sx={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.2rem'
+            }}>
+              🛍️
+            </Box>
+            <Typography variant="h6" fontWeight="bold">
+              ShopHub
+            </Typography>
+          </Box>
+
+          {/* Search in mobile */}
+          <Box component="form" onSubmit={handleSearch} sx={{ mb: 3 }}>
             <TextField
               fullWidth
               size="small"
@@ -370,83 +747,98 @@ const Header: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton type="submit" size="small">
-                      <SearchIcon />
-                    </IconButton>
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
                   </InputAdornment>
-                ),
+                )
               }}
             />
           </Box>
-        </Box>
 
-        {/* Mobile Navigation */}
-        <List>
-          {navigationItems.map((item) => (
-            <ListItem 
-              key={item.path}
-              component={Link} 
-              to={item.path}
-              onClick={() => setMobileMenuOpen(false)}
-              sx={{ 
-                color: 'inherit',
-                textDecoration: 'none',
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                }
-              }}
-            >
-              <ListItemIcon sx={{ color: 'primary.main' }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.label} />
-            </ListItem>
-          ))}
-          
-          {/* Cart Item */}
-          <ListItem 
-            onClick={handleCartOpen}
-            sx={{ 
-              cursor: 'pointer',
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-              }
-            }}
-          >
-            <ListItemIcon sx={{ color: 'primary.main' }}>
-              <Badge badgeContent={cartItemsCount} color="error">
-                <ShoppingCartIcon />
-              </Badge>
-            </ListItemIcon>
-            <ListItemText primary="Cart" />
-          </ListItem>
-          
-          {isAuthenticated && (user?.is_staff || user?.is_superuser) && (
-            <ListItem 
-              component={Link} 
-              to="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              sx={{ 
-                color: 'inherit',
-                textDecoration: 'none',
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                }
-              }}
-            >
-              <ListItemIcon sx={{ color: 'primary.main' }}>
-                <AccountIcon />
-              </ListItemIcon>
-              <ListItemText primary="Admin Panel" />
-            </ListItem>
+          {/* Navigation Items */}
+          <List>
+            {navigationItems.map((item) => (
+              <ListItemButton
+                key={item.label}
+                component={item.path ? Link : 'div'}
+                to={item.path}
+                onClick={() => {
+                  if (item.onClick) item.onClick({} as any);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.label} />
+              </ListItemButton>
+            ))}
+          </List>
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* User Section */}
+          {isAuthenticated ? (
+            <List>
+              {userMenuItems.map((item, index) => (
+                item.divider ? (
+                  <Divider key={index} sx={{ my: 1 }} />
+                ) : (
+                  <ListItemButton
+                    key={item.label}
+                    component={item.path ? Link : 'div'}
+                    to={item.path}
+                    onClick={() => {
+                      if (item.onClick) item.onClick();
+                      setMobileMenuOpen(false);
+                    }}
+                    sx={{
+                      color: item.color === 'error' ? 'error.main' : 'inherit'
+                    }}
+                  >
+                    <ListItemIcon sx={{ color: 'inherit' }}>
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText primary={item.label} />
+                  </ListItemButton>
+                )
+              ))}
+            </List>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Button
+                variant="outlined"
+                component={Link}
+                to="/auth?mode=login"
+                onClick={() => setMobileMenuOpen(false)}
+                fullWidth
+              >
+                Login
+              </Button>
+              <Button
+                variant="contained"
+                component={Link}
+                to="/auth?mode=register"
+                onClick={() => setMobileMenuOpen(false)}
+                fullWidth
+              >
+                Sign Up
+              </Button>
+            </Box>
           )}
-        </List>
+        </Box>
       </Drawer>
 
       {/* Cart Drawer */}
-      <CartDrawer open={cartDrawerOpen} onClose={handleCartClose} />
+      <CartDrawer
+        open={cartDrawerOpen}
+        onClose={() => setCartDrawerOpen(false)}
+      />
+
+      {/* Wishlist Drawer */}
+      <WishlistDrawer
+        open={wishlistDrawerOpen}
+        onClose={() => setWishlistDrawerOpen(false)}
+      />
     </>
   );
 };

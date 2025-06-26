@@ -1,5 +1,8 @@
 <?php
 
+// Start the PHP session early so controllers relying on \$_SESSION work correctly
+session_start();
+
 // Enable error reporting for development
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -67,8 +70,15 @@ if ($appEnv === 'production') {
 $appEnv = $_ENV['APP_ENV'] ?? 'development';
 if ($appEnv !== 'production') {
     // Local development - add CORS headers with credentials support
+    $allowedOrigins = ['http://localhost:5173', 'http://localhost:5175'];
     $origin = $_SERVER['HTTP_ORIGIN'] ?? 'http://localhost:5173';
-    header('Access-Control-Allow-Origin: ' . $origin);
+
+    if (in_array($origin, $allowedOrigins)) {
+        header('Access-Control-Allow-Origin: ' . $origin);
+    } else {
+        header('Access-Control-Allow-Origin: http://localhost:5173');
+    }
+
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Session-ID');
     header('Access-Control-Allow-Credentials: true');
@@ -100,11 +110,16 @@ try {
     $userRepository = new \App\Infrastructure\Persistence\Postgres\PostgresUserRepository($pdo);
     $productRepository = new \App\Infrastructure\Persistence\Postgres\PostgresProductRepository($pdo);
     $categoryRepository = new \App\Infrastructure\Persistence\Postgres\PostgresCategoryRepository($pdo);
+    $orderRepository = new \App\Infrastructure\Persistence\Postgres\PostgresOrderRepository($pdo);
+    $wishlistRepository = new \App\Infrastructure\Persistence\Postgres\PostgresWishlistRepository($pdo);
 
-    $userService = new \App\Application\Service\UserService($userRepository);
+    $emailService = new \App\Infrastructure\Service\EmailService($config);
+    $userService = new \App\Application\Service\UserService($userRepository, $emailService);
     $productService = new \App\Application\Service\ProductService($productRepository);
     $categoryService = new \App\Application\Service\CategoryService($categoryRepository);
     $cartService = new \App\Application\Service\CartService($pdo, $productRepository, $userRepository);
+    $orderService = new \App\Application\Service\OrderService($orderRepository, $productRepository, $userRepository, $cartService, $emailService);
+    $wishlistService = new \App\Application\Service\WishlistService($wishlistRepository, $productRepository);
 
     $authService = new \App\Application\Service\AuthService(
         $userService,
@@ -121,7 +136,10 @@ try {
     $productController = new \App\Presentation\Controller\ProductController($productService, $categoryService);
     $adminProductController = new \App\Presentation\Controller\AdminProductController($productService, $authMiddleware);
     $cartController = new \App\Presentation\Controller\CartController($cartService, $authMiddleware);
+    $orderController = new \App\Presentation\Controller\OrderController($orderService, $authMiddleware);
     $imageUploadController = new \App\Presentation\Controller\ImageUploadController();
+    $userProfileController = new \App\Presentation\Controller\UserProfileController($authMiddleware);
+    $wishlistController = new \App\Presentation\Controller\WishlistController($wishlistService, $authMiddleware);
 
     // Basic routing
     $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
@@ -197,29 +215,62 @@ try {
                 break;
 
             case $route === '/user/orders' && $requestMethod === 'GET':
-                $currentUser = $authMiddleware->handle();
-                if ($currentUser) {
-                    // Mock orders data for now
-                    $orders = [
-                        [
-                            'id' => 1,
-                            'order_number' => 'ORD-2024-001',
-                            'date' => '2024-06-20',
-                            'status' => 'delivered',
-                            'total' => 299.99,
-                            'items_count' => 2,
-                        ],
-                        [
-                            'id' => 2,
-                            'order_number' => 'ORD-2024-002',
-                            'date' => '2024-06-18',
-                            'status' => 'shipped',
-                            'total' => 149.99,
-                            'items_count' => 1,
-                        ]
-                    ];
-                    echo json_encode(['data' => $orders]);
-                }
+                $orderController->getMyOrders();
+                break;
+
+            case preg_match('/^\/user\/orders\/([^\/]+)$/', $route, $matches) && $requestMethod === 'GET':
+                $orderController->getOrderById($matches[1]);
+                break;
+
+            // User profile data endpoints
+            case $route === '/user/addresses' && $requestMethod === 'GET':
+                $userProfileController->getAddresses();
+                break;
+
+            case $route === '/user/addresses' && $requestMethod === 'POST':
+                $userProfileController->saveAddress();
+                break;
+
+            case $route === '/user/payment-methods' && $requestMethod === 'GET':
+                $userProfileController->getPaymentMethods();
+                break;
+
+            case $route === '/user/payment-methods' && $requestMethod === 'POST':
+                $userProfileController->savePaymentMethod();
+                break;
+
+            case $route === '/user/addresses/delete' && $requestMethod === 'POST':
+                $userProfileController->deleteAddress();
+                break;
+
+            case $route === '/user/payment-methods/delete' && $requestMethod === 'POST':
+                $userProfileController->deletePaymentMethod();
+                break;
+
+            // Wishlist endpoints
+            case $route === '/user/wishlist' && $requestMethod === 'GET':
+                $wishlistController->getWishlist();
+                break;
+
+            case $route === '/user/wishlist' && $requestMethod === 'POST':
+                $wishlistController->addToWishlist();
+                break;
+
+            case preg_match('/^\/user\/wishlist\/([^\/]+)$/', $route, $matches) && $requestMethod === 'DELETE':
+                $_REQUEST['product_id'] = $matches[1];
+                $wishlistController->removeFromWishlist();
+                break;
+
+            case $route === '/user/wishlist/check' && $requestMethod === 'GET':
+                $wishlistController->checkWishlist();
+                break;
+
+            case $route === '/user/wishlist/clear' && $requestMethod === 'DELETE':
+                $wishlistController->clearWishlist();
+                break;
+
+            case $route === '/user/wishlist/count' && $requestMethod === 'GET':
+                $wishlistController->getWishlistCount();
                 break;
 
             // Admin endpoints
@@ -323,13 +374,19 @@ try {
                 break;
 
             case $route === '/admin/orders' && $requestMethod === 'GET':
-                $currentUser = $authMiddleware->handle('is_staff');
-                if ($currentUser) {
-                    echo json_encode([
-                        'data' => [],
-                        'message' => 'Order management - Coming soon'
-                    ]);
-                }
+                $orderController->getAllOrders();
+                break;
+
+            case $route === '/admin/orders/statistics' && $requestMethod === 'GET':
+                $orderController->getOrderStatistics();
+                break;
+
+            case preg_match('/^\/admin\/orders\/([^\/]+)\/status$/', $route, $matches) && $requestMethod === 'PUT':
+                $orderController->updateOrderStatus($matches[1]);
+                break;
+
+            case preg_match('/^\/admin\/orders\/([^\/]+)\/payment-status$/', $route, $matches) && $requestMethod === 'PUT':
+                $orderController->updatePaymentStatus($matches[1]);
                 break;
 
             // Public product endpoints
@@ -359,25 +416,19 @@ try {
 
             // Order endpoints
             case $route === '/orders' && $requestMethod === 'GET':
-                $currentUser = $authMiddleware->handle();
-                if ($currentUser) {
-                    // TODO: Implement order listing
-                    echo json_encode([
-                        'message' => 'User orders',
-                        'data' => []
-                    ]);
-                }
+                $orderController->getMyOrders();
                 break;
 
             case $route === '/orders' && $requestMethod === 'POST':
-                $currentUser = $authMiddleware->handle();
-                if ($currentUser) {
-                    // TODO: Implement order creation
-                    echo json_encode([
-                        'message' => 'Order creation - TODO',
-                        'data' => null
-                    ]);
-                }
+                $orderController->createOrder();
+                break;
+
+            case preg_match('/^\/orders\/([^\/]+)$/', $route, $matches) && $requestMethod === 'GET':
+                $orderController->getOrderById($matches[1]);
+                break;
+
+            case preg_match('/^\/orders\/([^\/]+)\/cancel$/', $route, $matches) && $requestMethod === 'POST':
+                $orderController->cancelOrder($matches[1]);
                 break;
 
             // Cart endpoints
