@@ -135,19 +135,18 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Only logout and redirect if this is NOT a login attempt
-      if (!error.config?.url?.includes('/auth/login')) {
-        // Token expired or invalid - logout user
+      const message = error.response?.data?.error || '';
+      const isTokenProblem = /invalid|expired token/i.test(message);
+
+      if (isTokenProblem) {
+        // Truly invalid token → force logout
         store.dispatch(logout());
-        // Don't redirect on cart operations for guests
-        if (error.config?.url?.includes('/cart') && !store.getState().auth.token) {
-          return Promise.reject(error);
-        }
-        // Only redirect if we're not already on login page
         if (window.location.pathname !== '/login') {
           window.location.href = '/login';
         }
       }
+      // For other 401s (e.g., "Authentication required") just propagate error
+      return Promise.reject(error);
     }
     return Promise.reject(error);
   }
