@@ -44,13 +44,13 @@ if ($appEnv === 'production') {
     $localConfigFile = __DIR__ . '/../config/local.php';
     if (file_exists($localConfigFile)) {
         $config = require $localConfigFile;
-        $_ENV['DB_HOST'] = $config['database']['host'];
-        $_ENV['DB_PORT'] = $config['database']['port'];
-        $_ENV['DB_NAME'] = $config['database']['name'];
-        $_ENV['DB_USERNAME'] = $config['database']['username'];
-        $_ENV['DB_PASSWORD'] = $config['database']['password'];
-        $_ENV['JWT_SECRET'] = $config['app']['jwt_secret'];
-        $_ENV['APP_ENV'] = $config['app']['env'];
+        $_ENV['DB_HOST'] ??= $config['database']['host'];
+        $_ENV['DB_PORT'] ??= $config['database']['port'];
+        $_ENV['DB_NAME'] ??= $config['database']['name'];
+        $_ENV['DB_USERNAME'] ??= $config['database']['username'];
+        $_ENV['DB_PASSWORD'] ??= $config['database']['password'];
+        $_ENV['JWT_SECRET'] ??= $config['app']['jwt_secret'];
+        $_ENV['APP_ENV'] ??= $config['app']['env'];
     } else {
         // Load environment variables from .env file
         $envFile = __DIR__ . '/../../.env';

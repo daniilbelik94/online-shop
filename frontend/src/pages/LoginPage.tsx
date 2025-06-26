@@ -8,7 +8,13 @@ import {
   Box,
   Alert,
   Link,
+  CircularProgress,
+  Grid,
+  Stack,
+  Avatar,
+  Divider,
 } from '@mui/material';
+import { LockOutlined as LockOutlinedIcon } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
@@ -28,31 +34,22 @@ const LoginPage: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+    if (errors[name] || errors.general) {
+      setErrors({});
     }
   };
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
-    
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
-    
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    }
-    
+    const emailTrimmed = formData.email.trim();
+    if (!emailTrimmed) newErrors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(emailTrimmed)) newErrors.email = 'Email is invalid';
+    if (!formData.password) newErrors.password = 'Password is required';
     return newErrors;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -63,108 +60,115 @@ const LoginPage: React.FC = () => {
     dispatch(loginStart());
 
     try {
-      console.log('Attempting login with:', formData.email);
       const response = await authAPI.login(formData.email, formData.password);
-      console.log('Login response:', response.data);
       const { token, user } = response.data;
-      
       dispatch(loginSuccess({ token, user }));
       
-      // Redirect based on user role
       if (user.is_staff || user.is_superuser) {
         navigate('/admin');
       } else {
         navigate('/');
       }
     } catch (error: any) {
-      console.error('Login error:', error);
       dispatch(loginFailure());
-      
-      if (error.response?.status === 400 && error.response?.data?.errors) {
-        // Handle validation errors from backend
-        setErrors(error.response.data.errors);
-      } else if (error.response?.data?.error) {
-        setErrors({ 
-          general: error.response.data.error
-        });
-      } else {
-        setErrors({ 
-          general: 'Login failed. Please check your credentials and try again.' 
-        });
-      }
+      const errorMessage = error.response?.data?.error || 'Login failed. Please check your credentials.';
+      setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
-          <Typography component="h1" variant="h4" align="center" gutterBottom>
-            Sign In
+    <Box sx={{ 
+      minHeight: 'calc(100vh - 64px)', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      py: 4,
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+    }}>
+      <Container maxWidth="xs">
+        <Paper 
+          elevation={6} 
+          sx={{ 
+            p: 4, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center',
+            borderRadius: 3,
+          }}
+        >
+          <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
+            <LockOutlinedIcon />
+          </Avatar>
+          <Typography component="h1" variant="h5" sx={{ mb: 1 }}>
+            Welcome Back!
+          </Typography>
+          <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
+            Sign in to continue to your account.
           </Typography>
           
           {errors.general && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2, width: '100%' }}>
               {errors.general}
             </Alert>
           )}
           
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              autoFocus
-              value={formData.email}
-              onChange={handleChange}
-              error={!!errors.email}
-              helperText={errors.email}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={formData.password}
-              onChange={handleChange}
-              error={!!errors.password}
-              helperText={errors.password}
-            />
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
+            <Stack spacing={2}>
+              <TextField
+                required
+                fullWidth
+                id="email"
+                label="Email Address"
+                name="email"
+                autoComplete="email"
+                autoFocus
+                value={formData.email}
+                onChange={handleChange}
+                error={!!errors.email}
+                helperText={errors.email}
+              />
+              <TextField
+                required
+                fullWidth
+                name="password"
+                label="Password"
+                type="password"
+                id="password"
+                autoComplete="current-password"
+                value={formData.password}
+                onChange={handleChange}
+                error={!!errors.password}
+                helperText={errors.password}
+              />
+            </Stack>
             <Button
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3, mb: 2 }}
+              size="large"
+              sx={{ mt: 3, mb: 2, py: 1.5, fontWeight: 'bold' }}
               disabled={isLoading}
             >
-              {isLoading ? 'Signing In...' : 'Sign In'}
+              {isLoading ? <CircularProgress size={26} color="inherit" /> : 'Sign In'}
             </Button>
-            <Box textAlign="center">
-              <Link component={RouterLink} to="/register" variant="body2">
-                Don't have an account? Sign Up
-              </Link>
-            </Box>
+            <Grid container>
+              <Grid item xs>
+                <Link href="#" variant="body2">
+                  Forgot password?
+                </Link>
+              </Grid>
+              <Grid item>
+                <Link component={RouterLink} to="/register" variant="body2">
+                  {"Don't have an account? Sign Up"}
+                </Link>
+              </Grid>
+            </Grid>
           </Box>
         </Paper>
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 };
 

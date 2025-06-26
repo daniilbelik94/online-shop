@@ -64,6 +64,8 @@ import {
   Language as LanguageIcon,
   Brightness6 as ThemeIcon,
   History as HistoryIcon,
+  Login as LoginIcon,
+  PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -100,6 +102,7 @@ const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [wishlistDrawerOpen, setWishlistDrawerOpen] = useState(false);
+  const [guestMenuAnchor, setGuestMenuAnchor] = useState<null | HTMLElement>(null);
   const [categoriesMenuAnchor, setCategoriesMenuAnchor] = useState<null | HTMLElement>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [userStats, setUserStats] = useState({ orders: 0, spent: 0, points: 0 });
@@ -146,16 +149,18 @@ const Header: React.FC = () => {
 
   const loadUserStats = async () => {
     try {
-      // Load user statistics for profile dropdown
+      // Temporarily disabled until backend endpoint is implemented
+      /*
       const response = await fetch('/api/user/statistics', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
       if (response.ok) {
         const data = await response.json();
         setUserStats(data);
       }
+      */
     } catch (error) {
       console.error('Failed to load user stats:', error);
     }
@@ -538,41 +543,27 @@ const Header: React.FC = () => {
                   </Button>
                 </Box>
               ) : (
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    color="inherit"
-                    component={Link}
-                    to="/auth?mode=login"
-                    sx={{
-                      fontWeight: 'bold',
-                      px: 2,
-                      py: 1,
-                      borderRadius: 2,
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      '&:hover': {
-                        backgroundColor: 'rgba(255,255,255,0.1)',
-                      }
-                    }}
-                  >
-                    Login
-                  </Button>
-                  <Button
-                    color="inherit"
-                    component={Link}
-                    to="/auth?mode=register"
-                    sx={{
-                      fontWeight: 'bold',
-                      px: 2,
-                      py: 1,
-                      borderRadius: 2,
-                      backgroundColor: 'rgba(255,255,255,0.2)',
-                      '&:hover': {
-                        backgroundColor: 'rgba(255,255,255,0.3)',
-                      }
-                    }}
-                  >
-                    Sign Up
-                  </Button>
+                <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+                  <Tooltip title="Login / Sign Up">
+                    <Button
+                      color="inherit"
+                      onClick={(e) => setGuestMenuAnchor(e.currentTarget)}
+                      startIcon={<AccountIcon />}
+                      sx={{
+                        fontWeight: 'bold',
+                        px: 2,
+                        py: 1,
+                        borderRadius: 2,
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255,255,255,0.1)',
+                          borderColor: 'rgba(255,255,255,0.7)',
+                        }
+                      }}
+                    >
+                      Account
+                    </Button>
+                  </Tooltip>
                 </Box>
               )}
             </Box>
@@ -676,6 +667,37 @@ const Header: React.FC = () => {
             </MenuItem>
           )
         ))}
+      </Menu>
+
+      {/* Guest Menu */}
+      <Menu
+        anchorEl={guestMenuAnchor}
+        open={Boolean(guestMenuAnchor)}
+        onClose={() => setGuestMenuAnchor(null)}
+        PaperProps={{
+          sx: {
+            width: 200,
+            borderRadius: 2,
+            mt: 1,
+            '& .MuiMenuItem-root': {
+              px: 2,
+              py: 1.5,
+            }
+          }
+        }}
+      >
+        <MenuItem component={Link} to="/login" onClick={() => setGuestMenuAnchor(null)}>
+          <ListItemIcon>
+            <LoginIcon />
+          </ListItemIcon>
+          <ListItemText>Sign In</ListItemText>
+        </MenuItem>
+        <MenuItem component={Link} to="/register" onClick={() => setGuestMenuAnchor(null)}>
+          <ListItemIcon>
+            <PersonAddIcon />
+          </ListItemIcon>
+          <ListItemText>Sign Up</ListItemText>
+        </MenuItem>
       </Menu>
 
       {/* Categories Menu */}
@@ -808,7 +830,7 @@ const Header: React.FC = () => {
               <Button
                 variant="outlined"
                 component={Link}
-                to="/auth?mode=login"
+                to="/login"
                 onClick={() => setMobileMenuOpen(false)}
                 fullWidth
               >
@@ -817,7 +839,7 @@ const Header: React.FC = () => {
               <Button
                 variant="contained"
                 component={Link}
-                to="/auth?mode=register"
+                to="/register"
                 onClick={() => setMobileMenuOpen(false)}
                 fullWidth
               >
