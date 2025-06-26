@@ -11,12 +11,14 @@ import {
   Grid,
   Avatar,
   CircularProgress,
+  Snackbar,
 } from '@mui/material';
 import { PersonAddAlt as PersonAddIcon } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../store/slices/authSlice';
 import { authAPI } from '../lib/api';
+import MuiAlert from '@mui/material/Alert';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ const RegisterPage: React.FC = () => {
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -81,11 +84,14 @@ const RegisterPage: React.FC = () => {
       const { token, user } = loginResponse.data;
       dispatch(loginSuccess({ token, user }));
       
-      if (user.is_staff || user.is_superuser) {
-        navigate('/admin');
-      } else {
-        navigate('/');
-      }
+      setSuccessOpen(true);
+      setTimeout(() => {
+        if (user.is_staff || user.is_superuser) {
+          navigate('/admin');
+        } else {
+          navigate('/profile');
+        }
+      }, 1200);
     } catch (error: any) {
       const errorData = error.response?.data;
       if (errorData?.errors) {
@@ -175,6 +181,18 @@ const RegisterPage: React.FC = () => {
                 </Link>
               </Grid>
             </Grid>
+
+            {/* Success Snackbar */}
+            <Snackbar
+              open={successOpen}
+              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+              autoHideDuration={2500}
+              onClose={() => setSuccessOpen(false)}
+            >
+              <MuiAlert elevation={6} variant="filled" severity="success">
+                Registration successful! Redirecting…
+              </MuiAlert>
+            </Snackbar>
           </Box>
         </Paper>
       </Container>

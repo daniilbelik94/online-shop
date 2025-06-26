@@ -13,12 +13,14 @@ import {
   Stack,
   Avatar,
   Divider,
+  Snackbar,
 } from '@mui/material';
 import { LockOutlined as LockOutlinedIcon } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
 import { authAPI } from '../lib/api';
+import MuiAlert from '@mui/material/Alert';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -30,6 +32,7 @@ const LoginPage: React.FC = () => {
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -64,11 +67,15 @@ const LoginPage: React.FC = () => {
       const { token, user } = response.data;
       dispatch(loginSuccess({ token, user }));
       
-      if (user.is_staff || user.is_superuser) {
-        navigate('/admin');
-      } else {
-        navigate('/');
-      }
+      // Show success snackbar then redirect
+      setSuccessOpen(true);
+      setTimeout(() => {
+        if (user.is_staff || user.is_superuser) {
+          navigate('/admin');
+        } else {
+          navigate('/profile');
+        }
+      }, 1200);
     } catch (error: any) {
       dispatch(loginFailure());
       const errorMessage = error.response?.data?.error || 'Login failed. Please check your credentials.';
@@ -166,6 +173,18 @@ const LoginPage: React.FC = () => {
               </Grid>
             </Grid>
           </Box>
+
+          {/* Success Snackbar */}
+          <Snackbar
+            open={successOpen}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            autoHideDuration={2000}
+            onClose={() => setSuccessOpen(false)}
+          >
+            <MuiAlert elevation={6} variant="filled" severity="success">
+              Login successful! Redirecting…
+            </MuiAlert>
+          </Snackbar>
         </Paper>
       </Container>
     </Box>
