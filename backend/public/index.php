@@ -68,13 +68,14 @@ if ($appEnv === 'production') {
 
 // CORS headers configuration
 if ($appEnv === 'production') {
-    // Production environment: CORS is handled by Railway's proxy which already
-    // adds "Access-Control-Allow-Origin: *". Adding another header here causes
-    // duplicate values ("*, https://domain") which the browser rejects.
-    // Therefore, we skip setting CORS headers in production to let the proxy
-    // handle it. If you need credentialed requests in the future, set
-    // withCredentials=true on the frontend and explicitly configure Railway
-    // to remove the wildcard header.
+    // Production environment: Railway proxy already sets "Access-Control-Allow-Origin".
+    // We avoid duplicating that header, but we still need to expose the custom
+    // X-Session-ID header and allow credentials/methods so that the browser
+    // passes the pre-flight check.
+
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Session-ID');
 } else {
     // Development environment: allow local dev servers
     $allowedOrigins = [
