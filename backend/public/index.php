@@ -66,24 +66,25 @@ if ($appEnv === 'production') {
     }
 }
 
-// CORS headers (needed for local development, .htaccess handles production)
-$appEnv = $_ENV['APP_ENV'] ?? 'development';
-if ($appEnv !== 'production') {
-    // Local development - add CORS headers with credentials support
-    $allowedOrigins = ['http://localhost:5173', 'http://localhost:5175'];
-    $origin = $_SERVER['HTTP_ORIGIN'] ?? 'http://localhost:5173';
+// CORS headers configuration
+$allowedOrigins = [
+    'http://localhost:5173', // Local dev
+    'http://localhost:5175', // Alternative local dev
+    'https://online-shop-ten-blush.vercel.app' // Vercel frontend
+];
 
-    if (in_array($origin, $allowedOrigins)) {
-        header('Access-Control-Allow-Origin: ' . $origin);
-    } else {
-        header('Access-Control-Allow-Origin: http://localhost:5173');
-    }
-
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Session-ID');
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Expose-Headers: Authorization');
+if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowedOrigins)) {
+    header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+} else {
+    // Fallback or for non-browser requests
+    header('Access-Control-Allow-Origin: https://online-shop-ten-blush.vercel.app');
 }
+
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Session-ID');
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Expose-Headers: Authorization');
+
 header('Content-Type: application/json');
 
 // Handle preflight OPTIONS requests
