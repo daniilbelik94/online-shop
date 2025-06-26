@@ -68,17 +68,13 @@ if ($appEnv === 'production') {
 
 // CORS headers configuration
 if ($appEnv === 'production') {
-    // Production environment: only allow the Vercel frontend
-
-    // First, remove any headers set by upstream proxies to avoid conflicts.
-    header_remove('Access-Control-Allow-Origin');
-
-    // Set the specific origin.
-    header('Access-Control-Allow-Origin: https://online-shop-ten-blush.vercel.app');
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Session-ID');
-    header('Access-Control-Expose-Headers: Authorization');
+    // Production environment: CORS is handled by Railway's proxy which already
+    // adds "Access-Control-Allow-Origin: *". Adding another header here causes
+    // duplicate values ("*, https://domain") which the browser rejects.
+    // Therefore, we skip setting CORS headers in production to let the proxy
+    // handle it. If you need credentialed requests in the future, set
+    // withCredentials=true on the frontend and explicitly configure Railway
+    // to remove the wildcard header.
 } else {
     // Development environment: allow local dev servers
     $allowedOrigins = [
