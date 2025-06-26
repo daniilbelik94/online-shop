@@ -82,7 +82,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
 // Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // Enable cookies for cart session
+  withCredentials: false,
   headers: {
     'Content-Type': 'application/json',
   },
