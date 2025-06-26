@@ -66,27 +66,38 @@ if ($appEnv === 'production') {
     }
 }
 
-// First, remove any Access-Control-Allow-Origin header that might have been set by an upstream proxy
-header_remove('Access-Control-Allow-Origin');
-
 // CORS headers configuration
-$allowedOrigins = [
-    'http://localhost:5173', // Local dev
-    'http://localhost:5175', // Alternative local dev
-    'https://online-shop-ten-blush.vercel.app' // Vercel frontend
-];
+if ($appEnv === 'production') {
+    // Production environment: only allow the Vercel frontend
 
-if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowedOrigins)) {
-    header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-} else {
-    // Fallback or for non-browser requests
+    // First, remove any headers set by upstream proxies to avoid conflicts.
+    header_remove('Access-Control-Allow-Origin');
+
+    // Set the specific origin.
     header('Access-Control-Allow-Origin: https://online-shop-ten-blush.vercel.app');
-}
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Session-ID');
+    header('Access-Control-Expose-Headers: Authorization');
+} else {
+    // Development environment: allow local dev servers
+    $allowedOrigins = [
+        'http://localhost:5173',
+        'http://localhost:5175',
+    ];
 
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Session-ID');
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Expose-Headers: Authorization');
+    if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowedOrigins)) {
+        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+    } else {
+        // Fallback for tools or other clients
+        header('Access-Control-Allow-Origin: http://localhost:5173');
+    }
+
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Session-ID');
+    header('Access-Control-Expose-Headers: Authorization');
+}
 
 header('Content-Type: application/json');
 
