@@ -26,8 +26,8 @@ return [
         'use_smtp' => false, // Set to true to use SMTP, false to use PHP mail()
     ],
     'stripe' => [
-        'secret_key' => 'sk_test_51Rff8gQLCO1WKCZZTKxGrrLS9jYTFGeuSn5mQm8njMvElxCsxIs9c3Q927kyHmyrk2EDE8ZUqlk4PDtd6k9aisjV00cmBMItqf',
-        'publishable_key' => 'pk_test_51Rff8gQLCO1WKCZZ6fywgQWTJY6EbOXRsxGcp1PTTXjbw7GeFfFiNfsJVrIIyEGlyURV2xXHXmud4myEPkZOziId00H33hA0pR',
+        'secret_key' => 'sk_test_your_stripe_secret_key_here',
+        'publishable_key' => 'pk_test_your_stripe_publishable_key_here',
         'webhook_secret' => '', // Add webhook secret if needed
     ],
     'app' => [
