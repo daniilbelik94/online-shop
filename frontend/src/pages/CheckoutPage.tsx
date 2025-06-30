@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -37,35 +37,59 @@ import {
   useMediaQuery,
   StepConnector,
   styled,
+  Checkbox,
 } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { RootState, AppDispatch } from '../store';
-import { clearCart, selectCart, selectCartTotal } from '../store/slices/cartSlice';
+import { clearCart, selectCart, selectCartTotal, selectCartLoading, fetchCart } from '../store/slices/cartSlice';
 import { api } from '../lib/api';
 import {
-  LocalShipping as ShippingIcon,
-  Payment as PaymentIcon,
-  RateReview as ReviewIcon,
-  CreditCard as CreditCardIcon,
-  AccountBalanceWallet as PayPalIcon,
-  Apple as ApplePayIcon,
-  Google as GooglePayIcon,
-  LocalShipping as StandardIcon,
-  FlightTakeoff as ExpressIcon,
-  Bolt as OvernightIcon,
-  Security as SecurityIcon,
-  CheckCircle as CheckCircleIcon,
-  Lock as LockIcon,
-  Verified as VerifiedIcon,
-  Home as HomeIcon,
-  Edit as EditIcon,
-  Add as AddIcon,
+  calculateCartTotals,
+  formatPrice,
+  SHIPPING_OPTIONS,
+  getShippingOptionById,
+  type CartCalculations,
+} from '../lib/calculations';
+import {
+  LocalShipping,
+  Payment,
+  CheckCircle,
   ArrowBack as ArrowBackIcon,
-  ArrowForward as ArrowForwardIcon,
+  LocationOn,
+  CreditCard,
+  AccountBalance
 } from '@mui/icons-material';
 import OrderSuccessModal from '../components/OrderSuccessModal';
 import { userProfileApi } from '../services/api';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
+import StripePayment from '../components/StripePayment';
+
+// Suppress Stripe HTTPS warnings in development
+if (process.env.NODE_ENV === 'development') {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    if (args[0] && typeof args[0] === 'string' && args[0].includes('HTTPS')) {
+      return; // Suppress HTTPS warnings in development
+    }
+    originalWarn.apply(console, args);
+  };
+}
+
+// Initialize Stripe - create once and reuse
+let stripePromise: Promise<any> | null = null;
+const getStripePromise = () => {
+  if (!stripePromise) {
+    const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+    if (!publishableKey) {
+      console.error('Stripe publishable key is not configured');
+      return Promise.reject(new Error('Stripe not configured'));
+    }
+    stripePromise = loadStripe(publishableKey);
+  }
+  return stripePromise;
+};
 
 // Styled Components for better UI
 const StyledStepConnector = styled(StepConnector)(({ theme }) => ({
@@ -107,7 +131,7 @@ const CustomStepIcon = (props: any) => {
 
   return (
     <StyledStepIcon ownerState={{ completed, active }} className={className}>
-      {completed ? <CheckCircleIcon /> : icon}
+      {completed ? <CheckCircle /> : icon}
     </StyledStepIcon>
   );
 };
@@ -132,15 +156,27 @@ interface BillingAddress {
 }
 
 const steps = [
-  { label: 'Shipping Information', icon: ShippingIcon },
-  { label: 'Payment Method', icon: PaymentIcon },
-  { label: 'Review Order', icon: ReviewIcon },
+  { label: 'Shipping Information', icon: LocalShipping },
+  { label: 'Payment Method', icon: Payment },
+  { label: 'Review Order', icon: CheckCircle },
 ];
 
 const CheckoutPage: React.FC = () => {
+  // Memoize the Stripe instance to prevent re-renders
+  const stripeInstance = useMemo(() => getStripePromise(), []);
+  
+  return (
+    <Elements stripe={stripeInstance}>
+      <CheckoutPageContent />
+    </Elements>
+  );
+};
+
+const CheckoutPageContent: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const cart = useSelector(selectCart);
+  const cartLoading = useSelector(selectCartLoading);
   const total = useSelector(selectCartTotal);
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const theme = useTheme();
@@ -152,6 +188,7 @@ const CheckoutPage: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [orderSuccessOpen, setOrderSuccessOpen] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
+  const [isClosingModal, setIsClosingModal] = useState(false);
   const [userAddresses, setUserAddresses] = useState<any[]>([]);
   const [userPaymentMethods, setUserPaymentMethods] = useState<any[]>([]);
 
@@ -177,21 +214,32 @@ const CheckoutPage: React.FC = () => {
   });
 
   const [sameAsShipping, setSameAsShipping] = useState(true);
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
   const [shippingMethod, setShippingMethod] = useState('standard');
   const [customerNotes, setCustomerNotes] = useState('');
+  const [promoCode, setPromoCode] = useState('');
+  const [calculations, setCalculations] = useState<CartCalculations>({
+    subtotal: 0,
+    discount: 0,
+    shipping: 0,
+    tax: 0,
+    total: 0,
+  });
 
-  const shippingOptions = [
-    { id: 'standard', label: 'Standard Shipping (5-7 days)', cost: 0, icon: StandardIcon },
-    { id: 'express', label: 'Express Shipping (2-3 days)', cost: 15.99, icon: ExpressIcon },
-    { id: 'overnight', label: 'Overnight Shipping (1 day)', cost: 29.99, icon: OvernightIcon },
-  ];
+  // Use unified shipping options
+  const shippingOptions = SHIPPING_OPTIONS.map(option => ({
+    ...option,
+    icon: option.id === 'standard' ? LocalShipping : 
+          option.id === 'express' ? LocalShipping : LocalShipping
+  }));
 
   const paymentOptions = [
-    { id: 'card', label: 'Credit/Debit Card', icon: CreditCardIcon },
-    { id: 'paypal', label: 'PayPal', icon: PayPalIcon },
-    { id: 'apple_pay', label: 'Apple Pay', icon: ApplePayIcon },
-    { id: 'google_pay', label: 'Google Pay', icon: GooglePayIcon },
+    { id: 'card', label: 'Credit/Debit Card', icon: CreditCard },
+    { id: 'paypal', label: 'PayPal', icon: LocalShipping },
+    { id: 'apple_pay', label: 'Apple Pay', icon: LocalShipping },
+    { id: 'google_pay', label: 'Google Pay', icon: LocalShipping },
   ];
 
   useEffect(() => {
@@ -200,19 +248,13 @@ const CheckoutPage: React.FC = () => {
       return;
     }
 
-    if (!cart || cart.items.length === 0) {
-      navigate('/cart');
-      return;
+    // Load cart if not already loaded
+    if (!cart && !cartLoading) {
+      dispatch(fetchCart());
     }
 
     // Load user addresses and payment methods
     loadUserData();
-
-    // Test modal on page load (for debugging)
-    console.log('CheckoutPage loaded, testing modal state:', {
-      orderSuccessOpen,
-      orderData
-    });
 
     // Restore form data from localStorage after loading user data
     setTimeout(() => {
@@ -245,11 +287,20 @@ const CheckoutPage: React.FC = () => {
         setCustomerNotes(savedCustomerNotes);
       }
     }, 100); // Small delay to ensure user data is loaded first
-  }, [isAuthenticated, cart, navigate]);
+  }, [isAuthenticated, dispatch]);
 
-  // Debug effect for modal state changes
+  // Separate effect for cart loading
   useEffect(() => {
-    console.log('Modal state changed:', { orderSuccessOpen, orderData });
+    if (isAuthenticated && !cart && !cartLoading) {
+      dispatch(fetchCart());
+    }
+  }, [isAuthenticated, cart, cartLoading, dispatch]);
+
+  // Debug effect for modal state changes (only in development)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Modal state changed:', { orderSuccessOpen, orderData });
+    }
   }, [orderSuccessOpen, orderData]);
 
   // Save form data to localStorage when it changes
@@ -290,11 +341,62 @@ const CheckoutPage: React.FC = () => {
     }
   }, [sameAsShipping, shippingAddress]);
 
+  // Recalculate totals when cart data or options change
+  useEffect(() => {
+    const newCalculations = calculateCartTotals(
+      total,
+      promoCode || undefined,
+      shippingMethod
+    );
+    setCalculations(newCalculations);
+  }, [total, promoCode, shippingMethod]);
+
+  // Сброс формы и localStorage при смене пользователя
+  useEffect(() => {
+    if (user?.id) {
+      // Очищаем localStorage
+      localStorage.removeItem('checkout_shipping_address');
+      localStorage.removeItem('checkout_payment_method');
+      localStorage.removeItem('checkout_shipping_method');
+      localStorage.removeItem('checkout_customer_notes');
+
+      // Сбросить состояние формы
+      setShippingAddress({
+        name: '',
+        street: '',
+        city: '',
+        state: '',
+        postal_code: '',
+        country: 'US',
+        phone: '',
+      });
+      setBillingAddress({
+        name: '',
+        street: '',
+        city: '',
+        state: '',
+        postal_code: '',
+        country: 'US',
+      });
+      setPaymentMethod('card');
+      setShippingMethod('standard');
+      setCustomerNotes('');
+      setPaymentSuccess(false);
+      setPaymentError('');
+      setActiveStep(0);
+    }
+  }, [user?.id]);
+
   const handleNext = () => {
+    console.log('handleNext called, activeStep:', activeStep);
+    console.log('paymentMethod:', paymentMethod, 'paymentSuccess:', paymentSuccess);
+    
     if (activeStep === 0 && !validateShippingForm()) {
+      console.log('Shipping form validation failed');
       return;
     }
     if (activeStep === 1 && !validatePaymentForm()) {
+      console.log('Payment form validation failed');
       return;
     }
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -335,18 +437,10 @@ const CheckoutPage: React.FC = () => {
     return true;
   };
 
-  const calculateShippingCost = (): number => {
-    const option = shippingOptions.find(opt => opt.id === shippingMethod);
-    return option ? option.cost : 0;
-  };
-
-  const calculateTax = (): number => {
-    return Math.round(total * 0.085 * 100) / 100; // 8.5% tax
-  };
-
-  const calculateTotal = (): number => {
-    return total + calculateShippingCost() + calculateTax();
-  };
+  // Use unified calculations
+  const getShippingCost = (): number => calculations.shipping;
+  const getTax = (): number => calculations.tax;
+  const getFinalTotal = (): number => calculations.total;
 
   const loadUserData = async () => {
     try {
@@ -376,6 +470,63 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
+  const handlePaymentSuccess = (paymentIntent: any) => {
+    setPaymentSuccess(true);
+    setPaymentError('');
+    // Продолжить с размещением заказа
+    handlePlaceOrderWithPayment(paymentIntent.id);
+  };
+
+  const handlePaymentError = (error: string) => {
+    setPaymentError(error);
+    setPaymentSuccess(false);
+  };
+
+  const handlePlaceOrderWithPayment = async (paymentIntentId: string) => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const orderRequestData = {
+        shipping_address: shippingAddress,
+        billing_address: sameAsShipping ? shippingAddress : billingAddress,
+        payment_method: paymentMethod,
+        payment_intent_id: paymentIntentId,
+        shipping_method: shippingMethod,
+        shipping_cost: getShippingCost(),
+        customer_notes: customerNotes || null,
+      };
+
+      console.log('Placing order with payment:', orderRequestData);
+
+      const response = await api.post('/orders', orderRequestData);
+      console.log('Order response:', response);
+
+      if (response.status >= 200 && response.status < 300) {
+        setOrderData({
+          orderNumber: response.data?.order?.order_number || response.data?.data?.order?.order_number || `ORD-${Date.now()}`,
+          total: response.data?.order?.total_amount || response.data?.data?.order?.total_amount || getFinalTotal(),
+          email: response.data?.order?.customer_email || response.data?.data?.order?.customer_email || user?.email || 'your email',
+        });
+        
+        setOrderSuccessOpen(true);
+        setSuccess('Order placed successfully!');
+        
+        localStorage.removeItem('checkout_shipping_address');
+        localStorage.removeItem('checkout_payment_method');
+        localStorage.removeItem('checkout_shipping_method');
+        localStorage.removeItem('checkout_customer_notes');
+      } else {
+        throw new Error(response.data?.error || response.data?.message || 'Failed to place order');
+      }
+    } catch (err: any) {
+      console.error('Order error:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to place order. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePlaceOrder = async () => {
     try {
       setLoading(true);
@@ -386,41 +537,30 @@ const CheckoutPage: React.FC = () => {
         billing_address: sameAsShipping ? shippingAddress : billingAddress,
         payment_method: paymentMethod,
         shipping_method: shippingMethod,
-        shipping_cost: calculateShippingCost(),
+        shipping_cost: getShippingCost(),
         customer_notes: customerNotes || null,
       };
 
-      console.log('Placing order with data:', orderRequestData);
-
       const response = await api.post('/orders', orderRequestData);
-      console.log('Order response:', response);
 
       // Check if the response is successful (status 200-299)
       if (response.status >= 200 && response.status < 300) {
-        // Clear cart first
-        dispatch(clearCart());
+        // Set order data for the modal first
+        setOrderData({
+          orderNumber: response.data?.order?.order_number || response.data?.data?.order?.order_number || `ORD-${Date.now()}`,
+          total: response.data?.order?.total_amount || response.data?.data?.order?.total_amount || getFinalTotal(),
+          email: response.data?.order?.customer_email || response.data?.data?.order?.customer_email || user?.email || 'your email',
+        });
+        
+        // Show success modal
+        setOrderSuccessOpen(true);
+        setSuccess('Order placed successfully!');
         
         // Clear checkout form data from localStorage
         localStorage.removeItem('checkout_shipping_address');
         localStorage.removeItem('checkout_payment_method');
         localStorage.removeItem('checkout_shipping_method');
         localStorage.removeItem('checkout_customer_notes');
-        
-        // Set order data for the modal
-        setOrderData({
-          orderNumber: response.data?.order?.order_number || response.data?.data?.order?.order_number || `ORD-${Date.now()}`,
-          total: calculateTotal(),
-          email: response.data?.order?.customer_email || response.data?.data?.order?.customer_email || user?.email || 'your email',
-        });
-        
-        // Show success modal
-        console.log('Opening success modal with data:', {
-          orderNumber: response.data?.order?.order_number || response.data?.data?.order?.order_number || `ORD-${Date.now()}`,
-          total: calculateTotal(),
-          email: response.data?.order?.customer_email || response.data?.data?.order?.customer_email || user?.email || 'your email',
-        });
-        setOrderSuccessOpen(true);
-        setSuccess('Order placed successfully!');
       } else {
         throw new Error(response.data?.error || response.data?.message || 'Failed to place order');
       }
@@ -443,8 +583,37 @@ const CheckoutPage: React.FC = () => {
     }).format(numPrice);
   };
 
+  // Use useEffect for navigation to avoid setState during render
+  React.useEffect(() => {
+    // Only redirect if cart is loaded and empty, and we're not showing success modal
+    // Also make sure we're not in the middle of placing an order or closing modal
+    if (cart && cart.items.length === 0 && !orderSuccessOpen && !cartLoading && !loading && !isClosingModal) {
+      navigate('/cart');
+    }
+  }, [cart, orderSuccessOpen, navigate, cartLoading, loading, isClosingModal]);
+
   // Don't redirect if we're showing the success modal
-  if (!isAuthenticated || ((!cart || cart.items.length === 0) && !orderSuccessOpen)) {
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  // Show loading while cart is being fetched
+  if (cartLoading) {
+    return (
+      <Box sx={{ 
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
+      }}>
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
+
+  // Show loading or return null while redirecting
+  if ((!cart || cart.items.length === 0) && !orderSuccessOpen && !isClosingModal) {
     return null;
   }
 
@@ -751,6 +920,29 @@ const CheckoutPage: React.FC = () => {
                   </RadioGroup>
                 </FormControl>
 
+                {paymentMethod === 'card' && (
+                  <Box sx={{ mt: 3 }}>
+                    <StripePayment
+                      amount={getFinalTotal()}
+                      onSuccess={handlePaymentSuccess}
+                      onError={handlePaymentError}
+                      disabled={loading}
+                    />
+                  </Box>
+                )}
+
+                {paymentError && (
+                  <Alert severity="error" sx={{ mt: 2 }}>
+                    {paymentError}
+                  </Alert>
+                )}
+
+                {paymentSuccess && (
+                  <Alert severity="success" sx={{ mt: 2 }}>
+                    Payment successful! Proceeding with order...
+                  </Alert>
+                )}
+
                 <Box sx={{ mt: 3 }}>
                   <TextField
                     fullWidth
@@ -828,7 +1020,7 @@ const CheckoutPage: React.FC = () => {
                   <Button
                     variant="contained"
                     onClick={handlePlaceOrder}
-                    disabled={loading}
+                    disabled={loading || (paymentMethod === 'card' && !paymentSuccess)}
                     startIcon={loading ? <CircularProgress size={20} /> : null}
                   >
                     {loading ? 'Placing Order...' : 'Place Order'}
@@ -837,6 +1029,16 @@ const CheckoutPage: React.FC = () => {
                   <Button
                     variant="contained"
                     onClick={handleNext}
+                    disabled={(() => {
+                      const isDisabled = activeStep === 1 && paymentMethod === 'card' && !paymentSuccess;
+                      console.log('Next button disabled check:', {
+                        activeStep,
+                        paymentMethod,
+                        paymentSuccess,
+                        isDisabled
+                      });
+                      return isDisabled;
+                    })()}
                   >
                     Next
                   </Button>
@@ -884,13 +1086,13 @@ const CheckoutPage: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography>Shipping:</Typography>
                 <Typography>
-                  {calculateShippingCost() === 0 ? 'Free' : formatPrice(calculateShippingCost())}
+                  {getShippingCost() === 0 ? 'Free' : formatPrice(getShippingCost())}
                 </Typography>
               </Box>
               
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography>Tax:</Typography>
-                <Typography>{formatPrice(calculateTax())}</Typography>
+                <Typography>{formatPrice(getTax())}</Typography>
               </Box>
 
               <Divider sx={{ my: 2 }} />
@@ -898,7 +1100,7 @@ const CheckoutPage: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="h6">Total:</Typography>
                 <Typography variant="h6">
-                  {formatPrice(calculateTotal())}
+                  {formatPrice(getFinalTotal())}
                 </Typography>
               </Box>
             </CardContent>
@@ -910,8 +1112,13 @@ const CheckoutPage: React.FC = () => {
       <OrderSuccessModal
         open={orderSuccessOpen}
         onClose={() => {
-          console.log('Modal close called');
+          setIsClosingModal(true);
           setOrderSuccessOpen(false);
+          // Clear cart after modal is closed with a small delay
+          setTimeout(() => {
+            dispatch(clearCart());
+            setIsClosingModal(false);
+          }, 100);
         }}
         orderData={orderData}
       />

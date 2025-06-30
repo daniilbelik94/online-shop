@@ -30,6 +30,7 @@ class Order
     private ?\DateTimeImmutable $cancelledAt = null;
     private ?\DateTimeImmutable $returnRequestedAt = null;
     private ?\DateTimeImmutable $returnCompletedAt = null;
+    private array $applicableCategories = [];
 
     // Order statuses
     public const STATUS_PENDING = 'pending';
@@ -235,7 +236,8 @@ class Order
             self::PAYMENT_PENDING,
             self::PAYMENT_PAID,
             self::PAYMENT_FAILED,
-            self::PAYMENT_REFUNDED
+            self::PAYMENT_REFUNDED,
+            self::PAYMENT_PARTIALLY_REFUNDED
         ])) {
             throw new \InvalidArgumentException('Invalid payment status');
         }

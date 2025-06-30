@@ -58,6 +58,10 @@ class AuthService
             $decoded = JWT::decode($token, new Key($this->jwtSecret, 'HS256'));
             return (array) $decoded;
         } catch (\Exception $e) {
+            // Log only for expired tokens - helpful for debugging
+            if ($e instanceof \Firebase\JWT\ExpiredException) {
+                error_log("JWT Token expired for user session");
+            }
             return null;
         }
     }

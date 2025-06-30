@@ -28,11 +28,32 @@ interface ProductRepositoryInterface
 
     public function search(string $query, int $limit = 50, int $offset = 0): array;
 
+    public function searchCount(string $query): int;
+
+    public function searchAdvanced(
+        string $query = '',
+        string $category = '',
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        string $sort = 'relevance',
+        int $limit = 20,
+        int $offset = 0
+    ): array;
+
+    public function searchAdvancedCount(
+        string $query = '',
+        string $category = '',
+        ?float $minPrice = null,
+        ?float $maxPrice = null
+    ): int;
+
     public function findLowStock(): array;
 
     public function countAll(): int;
 
     public function countActive(): int;
+
+    public function countFeatured(): int;
 
     public function skuExists(string $sku): bool;
 

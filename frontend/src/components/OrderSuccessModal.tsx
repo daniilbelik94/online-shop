@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 
 interface OrderSuccessModalProps {
@@ -35,18 +36,11 @@ const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
     }).format(price);
   };
 
-  console.log('OrderSuccessModal render:', { open, orderData });
-  console.log('Modal should be visible:', open);
-  console.log('DOM body element exists:', !!document.body);
-
   if (!open) {
-    console.log('Modal is closed, not rendering');
     return null;
   }
 
-  console.log('Modal is open, rendering modal...');
-
-  return (
+  const modalContent = (
     <>
       <style>{`
         @keyframes slideIn {
@@ -87,10 +81,7 @@ const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
           justifyContent: 'center',
           padding: '16px',
         }}
-        onClick={(e) => {
-          e.stopPropagation();
-          console.log('Backdrop clicked - modal stays open');
-        }}
+        onClick={onClose}
       >
         <div
           style={{
@@ -161,7 +152,7 @@ const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
               color: '#2e7d32',
               marginBottom: '12px',
             }}>
-              Order Placed Successfully!
+              Order Successfully Placed!
             </h2>
             
             <div style={{ fontSize: '20px', marginBottom: '8px' }}>
@@ -174,8 +165,7 @@ const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
               marginBottom: '32px',
               lineHeight: 1.6,
             }}>
-              Thank you for your order! We've received your payment and will start
-              processing your order right away.
+              Thank you for your order! We have received your payment and will start processing your order right away.
             </p>
 
             {/* Order Details Card */}
@@ -239,7 +229,7 @@ const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <span style={{ marginRight: '8px' }}>📧</span>
                     <span style={{ color: '#666', fontSize: '14px' }}>
-                      Confirmation email sent to: {orderData.email}
+                      Confirmation sent to: {orderData.email}
                     </span>
                   </div>
                 </div>
@@ -276,7 +266,7 @@ const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
                   e.currentTarget.style.boxShadow = '0 4px 15px rgba(25, 118, 210, 0.3)';
                 }}
               >
-                🛍️ View My Orders
+                🛍️ My Orders
               </button>
               
               <button
@@ -315,15 +305,18 @@ const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
               color: '#666',
               lineHeight: 1.4,
             }}>
-              You can track your order status in your profile page.
+              You can track your order status in your account.
               <br />
-              We'll send you updates via email as your order progresses.
+              We will send you updates via email.
             </p>
           </div>
         </div>
       </div>
     </>
   );
+
+  // Use createPortal to render modal on document.body
+  return createPortal(modalContent, document.body);
 };
 
 export default OrderSuccessModal; 

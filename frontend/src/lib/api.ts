@@ -77,7 +77,7 @@ export interface Cart {
 }
 
 // Simplified API base URL - only localhost for development
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -239,8 +239,89 @@ export const adminAPI = {
   getLowStockProducts: (threshold?: number) => 
     api.get('/admin/products/low-stock', { params: { threshold } }),
   
-  // Categories (use public endpoint for now)
-  getCategories: () => api.get('/categories'),
+  // Categories management
+  getCategories: () => api.get('/admin/categories'),
+  
+  createCategory: (data: {
+    name: string;
+    description?: string;
+    parent_id?: string;
+  }) => api.post('/admin/categories', data),
+  
+  updateCategory: (id: string, data: {
+    name?: string;
+    description?: string;
+    parent_id?: string;
+  }) => api.put(`/admin/categories/${id}`, data),
+  
+  deleteCategory: (id: string) => api.delete(`/admin/categories/${id}`),
+  
+  // Coupons management
+  getCoupons: (params?: {
+    page?: number;
+    limit?: number;
+    active?: boolean;
+  }) => api.get('/admin/coupons', { params }),
+  
+  createCoupon: (data: {
+    code: string;
+    type: 'percentage' | 'fixed';
+    value: number;
+    min_order_amount?: number;
+    max_discount_amount?: number;
+    is_active?: boolean;
+    is_limited?: boolean;
+    max_uses?: number;
+    start_date?: string;
+    end_date?: string;
+  }) => api.post('/admin/coupons', data),
+  
+  updateCoupon: (id: string, data: {
+    code?: string;
+    type?: 'percentage' | 'fixed';
+    value?: number;
+    min_order_amount?: number;
+    max_discount_amount?: number;
+    is_active?: boolean;
+    is_limited?: boolean;
+    max_uses?: number;
+    start_date?: string;
+    end_date?: string;
+  }) => api.put(`/admin/coupons/${id}`, data),
+  
+  deleteCoupon: (id: string) => api.delete(`/admin/coupons/${id}`),
+  
+  toggleCouponStatus: (id: string) => api.patch(`/admin/coupons/${id}/toggle-status`),
+  
+  // Settings management
+  getSettings: () => api.get('/admin/settings'),
+  
+  updateSettings: (data: any) => api.put('/admin/settings', data),
+  
+  testEmail: (email: string) => api.post('/admin/settings/test-email', { email }),
+  
+  // Dashboard analytics
+  getDashboardStats: () => api.get('/admin/dashboard/stats'),
+  
+  getRecentOrders: () => api.get('/admin/dashboard/recent-orders'),
+  
+  getLowStockAlerts: () => api.get('/admin/dashboard/low-stock'),
+  
+  // Analytics
+  getAnalytics: (params?: {
+    timeRange?: string;
+    startDate?: string;
+    endDate?: string;
+  }) => api.get('/admin/analytics', { params }),
+  
+  getTopProducts: () => api.get('/admin/analytics/top-products'),
+  
+  getTopCategories: () => api.get('/admin/analytics/top-categories'),
+  
+  exportAnalytics: (params?: {
+    format?: 'csv' | 'excel';
+    timeRange?: string;
+  }) => api.get('/admin/analytics/export', { params }),
   
   getOrders: (params?: {
     page?: number;
@@ -256,6 +337,57 @@ export const adminAPI = {
   
   updatePaymentStatus: (orderId: string, payment_status: string) =>
     api.put(`/admin/orders/${orderId}/payment-status`, { payment_status }),
+  
+  // Offer management
+  getOffers: (params?: {
+    page?: number;
+    limit?: number;
+    type?: string;
+    category?: string;
+    active?: boolean;
+  }) => api.get('/offers', { params }),
+  
+  createOffer: (data: {
+    title: string;
+    description: string;
+    type: string;
+    discount_percent: number;
+    min_order_amount?: number;
+    max_discount_amount?: number;
+    product_id?: string;
+    category_id?: string;
+    is_active?: boolean;
+    is_limited?: boolean;
+    max_uses?: number;
+    start_date?: string;
+    end_date?: string;
+    image_url?: string;
+    conditions?: any;
+  }) => api.post('/offers', data),
+  
+  updateOffer: (id: string, data: {
+    title?: string;
+    description?: string;
+    type?: string;
+    discount_percent?: number;
+    min_order_amount?: number;
+    max_discount_amount?: number;
+    product_id?: string;
+    category_id?: string;
+    is_active?: boolean;
+    is_limited?: boolean;
+    max_uses?: number;
+    start_date?: string;
+    end_date?: string;
+    image_url?: string;
+    conditions?: any;
+  }) => api.put(`/offers/${id}`, data),
+  
+  deleteOffer: (id: string) => api.delete(`/offers/${id}`),
+  
+  toggleOfferStatus: (id: string) => api.patch(`/offers/${id}/toggle-status`),
+  
+  getOfferStatistics: () => api.get('/admin/offers/statistics'),
 };
 
 export const publicAPI = {

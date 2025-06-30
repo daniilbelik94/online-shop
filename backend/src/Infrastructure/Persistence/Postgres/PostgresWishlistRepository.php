@@ -20,16 +20,20 @@ class PostgresWishlistRepository implements WishlistRepositoryInterface
     public function getByUserId(string $userId): array
     {
         $stmt = $this->pdo->prepare('
-            SELECT w.*, p.name, p.slug, p.price, p.images, p.short_description, p.stock_quantity, p.is_active
+            SELECT w.*, p.name, p.slug, p.price, p.short_description, p.stock_quantity, p.is_active,
+                   (SELECT image_url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) as image_url,
+                   (SELECT JSON_AGG(image_url ORDER BY is_primary DESC, id) FROM product_images WHERE product_id = p.id) as images
             FROM wishlist w
             JOIN products p ON w.product_id = p.id
-            WHERE w.user_id = :user_id
+            WHERE w.user_id = :user_id AND p.is_active = true
             ORDER BY w.created_at DESC
         ');
         $stmt->execute(['user_id' => $userId]);
 
         $wishlistItems = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $images = $row['images'] ? json_decode($row['images'], true) : [];
+
             $wishlistItems[] = [
                 'id' => $row['id'],
                 'user_id' => $row['user_id'],
@@ -40,7 +44,8 @@ class PostgresWishlistRepository implements WishlistRepositoryInterface
                     'name' => $row['name'],
                     'slug' => $row['slug'],
                     'price' => (float) $row['price'],
-                    'images' => $row['images'] ? json_decode($row['images'], true) : [],
+                    'image_url' => $row['image_url'],
+                    'images' => $images ?: [],
                     'short_description' => $row['short_description'],
                     'stock_quantity' => (int) $row['stock_quantity'],
                     'is_active' => (bool) $row['is_active']

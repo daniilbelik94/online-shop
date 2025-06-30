@@ -93,7 +93,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           formData.append('images[]', file);
         });
         
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/admin/upload/images`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/admin/upload/images`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -109,7 +109,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         if (result.success) {
           // Convert backend response to UploadedImage format
           const uploadedImages = result.data.map((img: any) => ({
-            url: `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${img.url}`,
+            url: `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${img.url}`,
             filename: img.filename,
             size: img.size,
             type: 'image/uploaded',
@@ -122,7 +122,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         // Single file upload
         formData.append('image', selectedFiles[0]);
         
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/admin/upload/image`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/admin/upload/image`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -138,7 +138,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         if (result.success) {
           // Convert backend response to UploadedImage format
           const uploadedImage = {
-            url: `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${result.data.url}`,
+            url: `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${result.data.url}`,
             filename: result.data.filename,
             size: result.data.size,
             type: 'image/uploaded',
@@ -173,7 +173,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       if (isUploadedFile) {
         console.log('Attempting to delete from server:', imageToRemove.filename); // Debug log
         
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/admin/delete/image`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/admin/delete/image`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,

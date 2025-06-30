@@ -245,6 +245,65 @@ CREATE TABLE user_devices (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create offers table for special promotions and discounts
+CREATE TABLE offers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    type VARCHAR(50) NOT NULL, -- flash, weekend, clearance, student, new
+    discount_percent DECIMAL(5,2) NOT NULL CHECK (discount_percent > 0 AND discount_percent <= 100),
+    min_order_amount DECIMAL(10,2),
+    max_discount_amount DECIMAL(10,2),
+    product_id UUID REFERENCES products(id) ON DELETE SET NULL,
+    category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+    is_active BOOLEAN DEFAULT true,
+    is_limited BOOLEAN DEFAULT false,
+    max_uses INTEGER,
+    used_count INTEGER DEFAULT 0,
+    start_date TIMESTAMP,
+    end_date TIMESTAMP,
+    image_url VARCHAR(500),
+    conditions JSONB, -- Additional conditions for the offer
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create coupons table for discount codes
+CREATE TABLE coupons (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(50) UNIQUE NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    type VARCHAR(20) NOT NULL, -- percentage, fixed, free_shipping
+    value DECIMAL(10,2) NOT NULL,
+    min_order_amount DECIMAL(10,2),
+    max_discount_amount DECIMAL(10,2),
+    is_active BOOLEAN DEFAULT true,
+    is_single_use BOOLEAN DEFAULT false,
+    max_uses INTEGER,
+    used_count INTEGER DEFAULT 0,
+    start_date TIMESTAMP,
+    end_date TIMESTAMP,
+    applicable_categories JSONB, -- Array of category IDs
+    excluded_categories JSONB, -- Array of category IDs
+    applicable_products JSONB, -- Array of product IDs
+    excluded_products JSONB, -- Array of product IDs
+    first_time_only BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create coupon usage tracking table
+CREATE TABLE coupon_usage (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    coupon_id UUID REFERENCES coupons(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
+    discount_amount DECIMAL(10,2) NOT NULL,
+    used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(coupon_id, user_id, order_id)
+);
+
 -- Insert sample categories
 INSERT INTO categories (name, slug, description) VALUES
 ('Electronics', 'electronics', 'Latest electronic gadgets and devices'),
@@ -338,7 +397,7 @@ INSERT INTO products (name, slug, description, short_description, sku, price, co
 -- Office
 ('Herman Miller Aeron Chair', 'herman-miller-aeron-chair', 'Iconic ergonomic office chair with advanced PostureFit SL back support. Features breathable mesh design, adjustable armrests, and tilt mechanisms for all-day comfort and productivity.', 'Premium ergonomic office chair', 'HM-AERON-001', 1395.00, 1495.00, 20, true, (SELECT id FROM categories WHERE slug = 'office'), 'Herman Miller', ARRAY['https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=600&fit=crop']),
 
-('Apple Studio Display', 'apple-studio-display', '27-inch 5K Retina display with exceptional color accuracy and brightness. Features built-in camera, microphones, and speakers. Perfect for creative professionals and productivity.', '27-inch 5K professional display', 'APPL-STUDIO-001', 1599.99, 1699.99, 25, false, (SELECT id FROM categories WHERE slug = 'office'), 'Apple', ARRAY['https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=800&h=600&fit=crop']);
+('Apple Studio Display', 'apple-studio-display', '27-inch 5K Retina display with exceptional color accuracy and brightness. Features built-in camera, microphones, and speakers. Perfect for creative professionals and productivity.', '27-inch 5K professional display', 'APPL-STUDIO-001', 1599.99, 1699.99, 25, false, (SELECT id FROM categories WHERE slug = 'office'), 'Apple', ARRAY['https://images.unsplash.com/photo-1527864550417-7fd91fc54bc9?w=800&h=600&fit=crop']);
 
 -- Insert sample product images
 INSERT INTO product_images (product_id, image_url, alt_text, sort_order, is_primary) VALUES
@@ -411,3 +470,14 @@ CREATE INDEX idx_user_addresses_default ON user_addresses(is_default);
 CREATE INDEX idx_notifications_user ON notifications(user_id);
 CREATE INDEX idx_notifications_unread ON notifications(user_id, is_read);
 CREATE INDEX idx_user_devices_user ON user_devices(user_id);
+CREATE INDEX idx_offers_active ON offers(is_active);
+CREATE INDEX idx_offers_type ON offers(type);
+CREATE INDEX idx_offers_category ON offers(category_id);
+CREATE INDEX idx_offers_product ON offers(product_id);
+CREATE INDEX idx_offers_dates ON offers(start_date, end_date);
+CREATE INDEX idx_coupons_code ON coupons(code);
+CREATE INDEX idx_coupons_active ON coupons(is_active);
+CREATE INDEX idx_coupons_dates ON coupons(start_date, end_date);
+CREATE INDEX idx_coupon_usage_coupon ON coupon_usage(coupon_id);
+CREATE INDEX idx_coupon_usage_user ON coupon_usage(user_id);
+CREATE INDEX idx_coupon_usage_order ON coupon_usage(order_id);

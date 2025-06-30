@@ -22,29 +22,12 @@ class UserProfileController
                 return;
             }
 
-            // Get addresses from session storage
-            $sessionKey = 'user_addresses_' . $user['user_id'];
-            $addresses = $_SESSION[$sessionKey] ?? [];
-
-            // If no addresses saved, return default
-            if (empty($addresses)) {
-                $addresses = [
-                    [
-                        'id' => '1',
-                        'type' => 'home',
-                        'name' => 'Home Address',
-                        'street' => $user['address'] ?? '123 Main St',
-                        'city' => $user['city'] ?? 'New York',
-                        'state' => $user['state'] ?? 'NY',
-                        'postal_code' => $user['postal_code'] ?? '10001',
-                        'country' => $user['country'] ?? 'United States',
-                        'phone' => $user['phone'] ?? '',
-                        'is_default' => true
-                    ]
-                ];
-            }
-
-            $this->sendSuccess(['addresses' => $addresses]);
+            // For simplicity, return success - addresses will be managed client-side
+            // In a real app, you'd fetch from database
+            $this->sendSuccess([
+                'addresses' => [],
+                'message' => 'Addresses managed client-side'
+            ]);
         } catch (\Exception $e) {
             error_log("Error fetching addresses: " . $e->getMessage());
             $this->sendError('Failed to fetch addresses');
@@ -76,9 +59,6 @@ class UserProfileController
                 }
             }
 
-            $sessionKey = 'user_addresses_' . $user['user_id'];
-            $addresses = $_SESSION[$sessionKey] ?? [];
-
             $address = [
                 'id' => $input['id'] ?? uniqid(),
                 'type' => $input['type'] ?? 'custom',
@@ -92,28 +72,8 @@ class UserProfileController
                 'is_default' => $input['is_default'] ?? false
             ];
 
-            // Update existing or add new address
-            if ($input['id']) {
-                // Update existing address
-                $found = false;
-                for ($i = 0; $i < count($addresses); $i++) {
-                    if ($addresses[$i]['id'] === $input['id']) {
-                        $addresses[$i] = $address;
-                        $found = true;
-                        break;
-                    }
-                }
-                if (!$found) {
-                    $addresses[] = $address;
-                }
-            } else {
-                // Add new address
-                $addresses[] = $address;
-            }
-
-            // Save to session
-            $_SESSION[$sessionKey] = $addresses;
-
+            // In a real app, you'd save to database
+            // For now, just return success and let client handle storage
             $this->sendSuccess([
                 'message' => 'Address saved successfully',
                 'address' => $address

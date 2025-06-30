@@ -592,4 +592,100 @@ class PostgresProductRepository implements ProductRepositoryInterface
         $stmt = $this->pdo->query('SELECT gen_random_uuid()');
         return $stmt->fetchColumn();
     }
+
+    // Возвращает количество продуктов, найденных по поисковому запросу (LIKE или полнотекстовый)
+    public function searchCount(string $query): int
+    {
+        $sql = "SELECT COUNT(*) FROM products WHERE to_tsvector('english', name || ' ' || COALESCE(description, '')) @@ plainto_tsquery('english', :query)";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['query' => $query]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    // Полнотекстовый поиск с фильтрами и пагинацией
+    public function searchAdvanced(
+        string $query = '',
+        string $category = '',
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        string $sort = 'relevance',
+        int $limit = 20,
+        int $offset = 0
+    ): array {
+        $where = [];
+        $params = [];
+        if ($query) {
+            $where[] = "to_tsvector('english', name || ' ' || COALESCE(description, '')) @@ plainto_tsquery('english', :query)";
+            $params['query'] = $query;
+        }
+        if ($category) {
+            $where[] = 'category_id = :category';
+            $params['category'] = $category;
+        }
+        if ($minPrice !== null) {
+            $where[] = 'price >= :minPrice';
+            $params['minPrice'] = $minPrice;
+        }
+        if ($maxPrice !== null) {
+            $where[] = 'price <= :maxPrice';
+            $params['maxPrice'] = $maxPrice;
+        }
+        $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+        $orderSql = 'ORDER BY created_at DESC';
+        if ($sort === 'price_asc') $orderSql = 'ORDER BY price ASC';
+        if ($sort === 'price_desc') $orderSql = 'ORDER BY price DESC';
+        if ($sort === 'relevance' && $query) $orderSql = "ORDER BY ts_rank(to_tsvector('english', name || ' ' || COALESCE(description, '')), plainto_tsquery('english', :query)) DESC";
+        $sql = "SELECT * FROM products $whereSql $orderSql LIMIT :limit OFFSET :offset";
+        $stmt = $this->pdo->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue(is_string($k) ? ":$k" : $k, $v);
+        }
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return array_map([$this, 'hydrate'], $rows);
+    }
+
+    // Количество результатов для поиска с фильтрами
+    public function searchAdvancedCount(
+        string $query = '',
+        string $category = '',
+        ?float $minPrice = null,
+        ?float $maxPrice = null
+    ): int {
+        $where = [];
+        $params = [];
+        if ($query) {
+            $where[] = "to_tsvector('english', name || ' ' || COALESCE(description, '')) @@ plainto_tsquery('english', :query)";
+            $params['query'] = $query;
+        }
+        if ($category) {
+            $where[] = 'category_id = :category';
+            $params['category'] = $category;
+        }
+        if ($minPrice !== null) {
+            $where[] = 'price >= :minPrice';
+            $params['minPrice'] = $minPrice;
+        }
+        if ($maxPrice !== null) {
+            $where[] = 'price <= :maxPrice';
+            $params['maxPrice'] = $maxPrice;
+        }
+        $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+        $sql = "SELECT COUNT(*) FROM products $whereSql";
+        $stmt = $this->pdo->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue(is_string($k) ? ":$k" : $k, $v);
+        }
+        $stmt->execute();
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function countFeatured(): int
+    {
+        $sql = "SELECT COUNT(*) FROM products WHERE is_featured = true";
+        $stmt = $this->pdo->query($sql);
+        return (int)$stmt->fetchColumn();
+    }
 }

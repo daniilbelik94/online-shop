@@ -108,6 +108,15 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     }
   };
 
+  const calculateOrderTotal = (order: Order): number => {
+    const subtotal = order.subtotal || order.total || 0;
+    const tax = order.tax_amount || 0;
+    const shipping = order.shipping_cost || 0;
+    const discount = order.discount_amount || 0;
+    
+    return Math.round((subtotal + tax + shipping - discount) * 100) / 100;
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'delivered':
@@ -175,9 +184,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     const content = `
       Order Receipt - ${order.order_number}
       
-      Order Date: ${formatDate(order.created_at)}
+      Order Date: ${formatDate(order.created_at || '')}
       Status: ${order.status}
-      Total: ${formatPrice(order.total)}
+      Total: ${formatPrice(calculateOrderTotal(order))}
       
       Items:
       ${order.items?.map(item => `- ${item.product_name} (Qty: ${item.quantity}) - ${formatPrice(item.price)}`).join('\n')}
@@ -269,7 +278,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               <Grid item xs={12} md={4}>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" fontWeight="bold" color="primary">
-                    {formatPrice(order.total)}
+                    {formatPrice(calculateOrderTotal(order))}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Order Total
@@ -279,7 +288,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               <Grid item xs={12} md={4}>
                 <Box sx={{ textAlign: 'right' }}>
                   <Typography variant="body1" fontWeight="bold">
-                    {formatDate(order.created_at)}
+                    {formatDate(order.created_at || '')}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Order Date
@@ -407,7 +416,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="h6" fontWeight="bold">Total:</Typography>
                 <Typography variant="h6" fontWeight="bold" color="primary">
-                  {formatPrice(order.total)}
+                  {formatPrice(calculateOrderTotal(order))}
                 </Typography>
               </Box>
             </Box>
@@ -449,7 +458,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     <ListItemIcon><ScheduleIcon /></ListItemIcon>
                     <ListItemText
                       primary="Payment Date"
-                      secondary={formatDate(order.created_at)}
+                      secondary={formatDate(order.created_at || '')}
                     />
                   </ListItem>
                   {order.payment_notes && (

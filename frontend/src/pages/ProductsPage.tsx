@@ -43,12 +43,15 @@ import {
 } from '@mui/icons-material';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { useQueryClient } from '@tanstack/react-query';
 import { AppDispatch } from '../store';
 import { addToCart } from '../store/slices/cartSlice';
 import { fetchWishlist } from '../store/slices/wishlistSlice';
 import { selectIsAuthenticated } from '../store/slices/authSlice';
-import { publicAPI, Product, Category, ProductsResponse } from '../lib/api';
+import { Product, Category, ProductsResponse } from '../lib/api';
 import ProductCard from '../components/ProductCard';
+import { useProducts, useCategories, useAddToCart, queryKeys } from '../hooks/useApi';
+import { LoadingSpinner, ErrorState, EmptyState, ProductSkeleton } from '../components/LoadingStates';
 
 const ProductsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -58,18 +61,8 @@ const ProductsPage: React.FC = () => {
   const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
   const dispatch = useDispatch<AppDispatch>();
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const queryClient = useQueryClient();
   
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
-  const [pagination, setPagination] = useState({
-    current_page: 1,
-    per_page: 12,
-    total: 0,
-    total_pages: 0,
-  });
-
   // Filter states
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
@@ -78,9 +71,42 @@ const ProductsPage: React.FC = () => {
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'created_at_desc');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-
-  // Available brands
+  const [currentPage, setCurrentPage] = useState(1);
   const [availableBrands, setAvailableBrands] = useState<string[]>([]);
+
+  // React Query hooks
+  const { data: productsData, isLoading: productsLoading, error: productsError } = useProducts({
+    page: currentPage,
+    limit: 12,
+    search: searchQuery || undefined,
+    category: selectedCategory || undefined,
+    sort: sortBy,
+  });
+
+  const { data: categoriesData, isLoading: categoriesLoading } = useCategories();
+  const addToCartMutation = useAddToCart();
+
+  // Debug logging
+  console.log('ProductsPage Debug:', {
+    searchQuery,
+    selectedCategory,
+    sortBy,
+    currentPage,
+    productsData,
+    productsLoading,
+    productsError,
+    productsCount: productsData?.data?.length || 0
+  });
+
+  // Extract data from React Query responses
+  const products = productsData?.data || [];
+  const pagination = productsData?.pagination || {
+    current_page: 1,
+    per_page: 12,
+    total: 0,
+    total_pages: 0,
+  };
+  const categories = categoriesData?.data || [];
 
   // Load wishlist when user is authenticated
   useEffect(() => {
@@ -89,86 +115,15 @@ const ProductsPage: React.FC = () => {
     }
   }, [isAuthenticated, dispatch]);
 
-  const loadProducts = useCallback(async (page: number = 1) => {
-    try {
-      setLoading(true);
-      setError('');
-
-      const params = {
-        page,
-        limit: pagination.per_page,
-        ...(searchQuery && { search: searchQuery }),
-        ...(selectedCategory && { category: selectedCategory }),
-        ...(selectedBrand && { brand: selectedBrand }),
-        ...(priceRange[0] > 0 && { min_price: priceRange[0] }),
-        ...(priceRange[1] < 1000 && { max_price: priceRange[1] }),
-        sort: sortBy,
-      };
-
-      const response = await publicAPI.getProducts(params);
-      const data: ProductsResponse = response.data;
-
-      const productsData = data?.data || [];
-      const paginationData = data?.pagination || {
-        current_page: 1,
-        per_page: 12,
-        total: 0,
-        total_pages: 0,
-      };
-
-      setProducts(Array.isArray(productsData) ? productsData : []);
-      setPagination(paginationData);
-
-      // Extract unique brands
-      const validProducts = Array.isArray(productsData) ? productsData : [];
-      const brandsSet = new Set(validProducts.map(p => p.brand).filter(Boolean));
-      const brands = Array.from(brandsSet) as string[];
-      setAvailableBrands(brands);
-
-    } catch (err) {
-      setError('Error loading products');
-      console.error('Error loading products:', err);
-      setProducts([]);
-      setAvailableBrands([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [searchQuery, selectedCategory, selectedBrand, priceRange, sortBy, pagination.per_page]);
-
-  const loadCategories = useCallback(async () => {
-    try {
-      const response = await publicAPI.getCategories();
-      const categoriesData = response.data?.data || response.data || [];
-      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-    } catch (err) {
-      console.error('Error loading categories:', err);
-      setCategories([]);
-    }
-  }, []);
-
+  // Extract unique brands from products
   useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+    const brandsSet = new Set(products.map((p: Product) => p.brand).filter(Boolean));
+    const brands = Array.from(brandsSet) as string[];
+    setAvailableBrands(brands);
+  }, [products]);
 
-  // Read URL params on mount
+  // Update URL params when filters change
   useEffect(() => {
-    const urlSearch = searchParams.get('search') || '';
-    const urlCategory = searchParams.get('category') || '';
-    const urlBrand = searchParams.get('brand') || '';
-    const urlSort = searchParams.get('sort') || 'created_at_desc';
-    
-    if (urlSearch !== searchQuery) setSearchQuery(urlSearch);
-    if (urlCategory !== selectedCategory) setSelectedCategory(urlCategory);
-    if (urlBrand !== selectedBrand) setBrand(urlBrand);
-    if (urlSort !== sortBy) setSortBy(urlSort);
-  }, [searchParams]);
-
-  useEffect(() => {
-    loadProducts(1);
-  }, [searchQuery, selectedCategory, selectedBrand, priceRange, sortBy]);
-
-  useEffect(() => {
-    // Update URL params
     const params = new URLSearchParams();
     if (searchQuery) params.set('search', searchQuery);
     if (selectedCategory) params.set('category', selectedCategory);
@@ -178,14 +133,50 @@ const ProductsPage: React.FC = () => {
     setSearchParams(params);
   }, [searchQuery, selectedCategory, selectedBrand, sortBy, setSearchParams]);
 
+  // Update state when URL params change (only on mount or when URL changes externally)
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    const urlCategory = searchParams.get('category') || '';
+    const urlBrand = searchParams.get('brand') || '';
+    const urlSort = searchParams.get('sort') || 'created_at_desc';
+    
+    console.log('ProductsPage URL params changed:', {
+      urlSearch,
+      urlCategory,
+      urlBrand,
+      urlSort,
+      currentSearchQuery: searchQuery,
+      currentSelectedCategory: selectedCategory
+    });
+    
+    setSearchQuery(urlSearch);
+    setSelectedCategory(urlCategory);
+    setBrand(urlBrand);
+    setSortBy(urlSort);
+  }, [searchParams]);
+
+  // Принудительно обновить кэш при изменении фильтров
+  useEffect(() => {
+    console.log('Filters changed, invalidating cache:', {
+      searchQuery,
+      selectedCategory,
+      selectedBrand,
+      sortBy,
+      currentPage
+    });
+    queryClient.invalidateQueries({ queryKey: queryKeys.products });
+  }, [searchQuery, selectedCategory, selectedBrand, sortBy, currentPage, queryClient]);
+
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
-    loadProducts(value);
+    setCurrentPage(value);
+    queryClient.invalidateQueries({ queryKey: queryKeys.products });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    loadProducts(1);
+    setCurrentPage(1);
+    queryClient.invalidateQueries({ queryKey: queryKeys.products });
     if (isMobile) setMobileFiltersOpen(false);
   };
 
@@ -195,12 +186,13 @@ const ProductsPage: React.FC = () => {
     setBrand('');
     setPriceRange([0, 1000]);
     setSortBy('created_at_desc');
+    queryClient.invalidateQueries({ queryKey: queryKeys.products });
     if (isMobile) setMobileFiltersOpen(false);
   };
 
   const handleAddToCart = async (product: Product) => {
     try {
-      await dispatch(addToCart({ productId: product.id.toString(), quantity: 1 })).unwrap();
+      await addToCartMutation.mutateAsync({ productId: product.id.toString(), quantity: 1 });
     } catch (error) {
       console.error('Failed to add to cart:', error);
     }
@@ -246,7 +238,10 @@ const ProductsPage: React.FC = () => {
             fullWidth
             placeholder="Search products..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              queryClient.invalidateQueries({ queryKey: queryKeys.products });
+            }}
             InputProps={{
               endAdornment: (
                 <IconButton type="submit" sx={{ borderRadius: 2 }}>
@@ -271,12 +266,15 @@ const ProductsPage: React.FC = () => {
         <FormControl fullWidth>
           <Select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              queryClient.invalidateQueries({ queryKey: queryKeys.products });
+            }}
             displayEmpty
             sx={{ borderRadius: 2 }}
           >
             <MenuItem value="">All Categories</MenuItem>
-            {categories.map((category) => (
+            {categories.map((category: Category) => (
               <MenuItem key={category.id} value={category.slug}>
                 {category.name}
               </MenuItem>
@@ -293,7 +291,10 @@ const ProductsPage: React.FC = () => {
           <FormControl fullWidth>
             <Select
               value={selectedBrand}
-              onChange={(e) => setBrand(e.target.value)}
+              onChange={(e) => {
+                setBrand(e.target.value);
+                queryClient.invalidateQueries({ queryKey: queryKeys.products });
+              }}
               displayEmpty
               sx={{ borderRadius: 2 }}
             >
@@ -331,7 +332,10 @@ const ProductsPage: React.FC = () => {
         <FormControl fullWidth>
           <Select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              queryClient.invalidateQueries({ queryKey: queryKeys.products });
+            }}
             sx={{ borderRadius: 2 }}
           >
             <MenuItem value="created_at_desc">Newest First</MenuItem>
@@ -357,20 +361,14 @@ const ProductsPage: React.FC = () => {
     </Box>
   );
 
-  if (error) {
+  if (productsError) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert 
-          severity="error" 
-          sx={{ mb: 4, borderRadius: 3 }}
-          action={
-            <Button color="inherit" size="small" onClick={() => loadProducts(1)}>
-              Retry
-            </Button>
-          }
-        >
-          {error}
-        </Alert>
+        <ErrorState 
+          error={productsError} 
+          onRetry={() => setCurrentPage(1)}
+          title="Failed to load products"
+        />
       </Container>
     );
   }
@@ -392,7 +390,7 @@ const ProductsPage: React.FC = () => {
           {selectedCategory && (
             <>
               <span style={{ margin: '0 4px' }}>→</span>
-              {categories.find(c => c.slug === selectedCategory)?.name || selectedCategory}
+              {categories.find((c: Category) => c.slug === selectedCategory)?.name || selectedCategory}
             </>
           )}
         </Typography>
@@ -404,7 +402,7 @@ const ProductsPage: React.FC = () => {
           🛍️ Our Products
         </Typography>
         <Typography variant="subtitle1" color="text.secondary">
-          {loading ? 'Loading...' : `Showing ${products.length} of ${pagination.total} products`}
+          {productsLoading ? 'Loading...' : `Showing ${products.length} of ${pagination.total} products`}
         </Typography>
       </Box>
 
@@ -417,15 +415,21 @@ const ProductsPage: React.FC = () => {
               {searchQuery && (
                 <Chip
                   label={`Search: ${searchQuery}`}
-                  onDelete={() => setSearchQuery('')}
+                  onDelete={() => {
+                    setSearchQuery('');
+                    queryClient.invalidateQueries({ queryKey: queryKeys.products });
+                  }}
                   size="small"
                   variant="outlined"
                 />
               )}
               {selectedCategory && (
                 <Chip
-                  label={categories.find(c => c.slug === selectedCategory)?.name || selectedCategory}
-                  onDelete={() => setSelectedCategory('')}
+                  label={categories.find((c: Category) => c.slug === selectedCategory)?.name || selectedCategory}
+                  onDelete={() => {
+                    setSelectedCategory('');
+                    queryClient.invalidateQueries({ queryKey: queryKeys.products });
+                  }}
                   size="small"
                   variant="outlined"
                 />
@@ -433,7 +437,10 @@ const ProductsPage: React.FC = () => {
               {selectedBrand && (
                 <Chip
                   label={selectedBrand}
-                  onDelete={() => setBrand('')}
+                  onDelete={() => {
+                    setBrand('');
+                    queryClient.invalidateQueries({ queryKey: queryKeys.products });
+                  }}
                   size="small"
                   variant="outlined"
                 />
@@ -441,7 +448,10 @@ const ProductsPage: React.FC = () => {
               {(priceRange[0] > 0 || priceRange[1] < 1000) && (
                 <Chip
                   label={`Price: ${formatPrice(priceRange[0])} - ${formatPrice(priceRange[1])}`}
-                  onDelete={() => setPriceRange([0, 1000])}
+                  onDelete={() => {
+                    setPriceRange([0, 1000]);
+                    queryClient.invalidateQueries({ queryKey: queryKeys.products });
+                  }}
                   size="small"
                   variant="outlined"
                 />
@@ -526,8 +536,8 @@ const ProductsPage: React.FC = () => {
                 variant="outlined"
                 size="small"
                 startIcon={<RefreshIcon />}
-                onClick={() => loadProducts(pagination.current_page)}
-                disabled={loading}
+                onClick={() => setCurrentPage(pagination.current_page)}
+                disabled={productsLoading}
                 sx={{ borderRadius: 2, ml: 1 }}
               >
                 Refresh
@@ -536,64 +546,35 @@ const ProductsPage: React.FC = () => {
           </Box>
 
           {/* Products Grid/List */}
-          {loading ? (
-            <Grid container spacing={3}>
-              {Array.from({ length: 8 }).map((_, index) => (
-                <Grid item xs={12} sm={6} md={viewMode === 'grid' ? 4 : 12} key={index}>
-                  <Card sx={{ borderRadius: 3, height: viewMode === 'grid' ? 420 : 200 }}>
-                    <Skeleton variant="rectangular" height={viewMode === 'grid' ? 240 : 200} />
-                    {viewMode === 'grid' && (
-                      <CardContent sx={{ height: 180 }}>
-                        <Skeleton variant="text" width="60%" height={20} />
-                        <Skeleton variant="text" width="80%" height={16} />
-                        <Skeleton variant="text" width="40%" height={24} sx={{ mt: 2 }} />
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                          <Skeleton variant="rectangular" width={80} height={12} />
-                          <Skeleton variant="text" width="30%" height={12} />
-                        </Box>
-                      </CardContent>
-                    )}
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
+          {productsLoading ? (
+            <ProductSkeleton count={8} viewMode={viewMode} />
           ) : products.length === 0 ? (
-            <Paper sx={{ p: 8, textAlign: 'center', borderRadius: 3, bgcolor: 'grey.50' }}>
-              <Box
-                sx={{
-                  fontSize: '4rem',
-                  mb: 2,
-                  opacity: 0.5,
-                }}
-              >
-                🔍
-              </Box>
-              <Typography variant="h5" fontWeight="bold" gutterBottom>
-                No products found
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}>
-                We couldn't find any products matching your criteria. Try adjusting your filters or search terms.
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<ClearIcon />}
-                onClick={clearFilters}
-                sx={{ 
-                  borderRadius: 2,
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
-                  }
-                }}
-              >
-                Clear All Filters
-              </Button>
-            </Paper>
+            <EmptyState
+              title="No products found"
+              message="We couldn't find any products matching your criteria. Try adjusting your filters or search terms."
+              icon={<SearchIcon sx={{ fontSize: 64, opacity: 0.5 }} />}
+              action={
+                <Button
+                  variant="contained"
+                  startIcon={<ClearIcon />}
+                  onClick={clearFilters}
+                  sx={{ 
+                    borderRadius: 2,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
+                    }
+                  }}
+                >
+                  Clear All Filters
+                </Button>
+              }
+            />
           ) : (
             <>
               {viewMode === 'grid' ? (
                 <Grid container spacing={3}>
-                  {products.map((product) => (
+                  {products.map((product: Product) => (
                     <Grid 
                       item 
                       xs={12} 
@@ -611,7 +592,7 @@ const ProductsPage: React.FC = () => {
                 </Grid>
               ) : (
                 <Box>
-                  {products.map((product) => (
+                  {products.map((product: Product) => (
                     <ProductCard
                       key={product.id}
                       product={product}
@@ -628,7 +609,7 @@ const ProductsPage: React.FC = () => {
                   <Paper sx={{ p: 2, borderRadius: 3 }}>
                     <Pagination
                       count={pagination.total_pages}
-                      page={pagination.current_page}
+                      page={currentPage}
                       onChange={handlePageChange}
                       color="primary"
                       size={isMobile ? "small" : "medium"}

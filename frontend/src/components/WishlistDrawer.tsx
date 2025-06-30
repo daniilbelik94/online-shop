@@ -26,13 +26,14 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import {
   selectWishlistItems,
+  selectWishlistProducts,
   selectWishlistLoading,
   removeFromWishlist,
 } from '../store/slices/wishlistSlice';
 import { addToCart } from '../store/slices/cartSlice';
 import { useNavigate } from 'react-router-dom';
 import { AppDispatch, RootState } from '../store';
-import { Product } from '../lib/api';
+import { Product, WishlistItem } from '../types';
 
 interface WishlistDrawerProps {
   open: boolean;
@@ -42,35 +43,54 @@ interface WishlistDrawerProps {
 const WishlistDrawer: React.FC<WishlistDrawerProps> = ({ open, onClose }) => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const items = useSelector((state: RootState) => state.wishlist.items);
-  const loading = useSelector((state: RootState) => state.wishlist.loading);
+  const items = useSelector(selectWishlistItems);
+  const products = useSelector(selectWishlistProducts);
+  const loading = useSelector(selectWishlistLoading);
 
   const handleRemove = (productId: string | number) => {
     dispatch(removeFromWishlist(productId));
   };
 
-  const handleAddToCart = (item: Product) => {
-    dispatch(addToCart({ productId: item.id.toString(), quantity: 1 }));
-    dispatch(removeFromWishlist(item.id));
-    // Optional: add a toast notification "Moved to cart"
+  const handleAddToCart = (product: Product) => {
+    dispatch(addToCart({ productId: product.id.toString(), quantity: 1 }));
+    // Don't automatically remove from wishlist - let user decide
   };
 
   const handleNavigate = (path: string) => {
     onClose();
     navigate(path);
-  }
+  };
 
   const formatPrice = (price: number): string =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
 
   const getProductImage = (product: Product): string => {
-    if (product.images && product.images.length > 0) {
+    // Check if product has images array
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
       const firstImage = product.images[0];
-      if (typeof firstImage === 'string') return firstImage;
-      if (firstImage && 'image_url' in firstImage) return firstImage.image_url;
+      if (typeof firstImage === 'string') {
+        // If it's a string, check if it's a full URL or just filename
+        if (firstImage.startsWith('http')) {
+          return firstImage;
+        }
+        // For local files, construct the correct path
+        return `/backend/public/uploads/${firstImage}`;
+      }
+      if (firstImage && typeof firstImage === 'object' && 'image_url' in firstImage) {
+        return firstImage.image_url;
+      }
     }
-    return product.image_url || '/placeholder-product.jpg';
-  }
+    
+    // Fallback to image_url field
+    if (product.image_url) {
+      if (product.image_url.startsWith('http')) {
+        return product.image_url;
+      }
+      return `/backend/public/uploads/${product.image_url}`;
+    }
+    
+    return '/placeholder-product.jpg';
+  };
   
   const renderEmptyState = () => (
     <Box sx={{
@@ -159,10 +179,15 @@ const WishlistDrawer: React.FC<WishlistDrawerProps> = ({ open, onClose }) => {
             renderEmptyState()
           ) : (
             <List disablePadding>
-              {items.map((raw: any) => {
-                const product = raw.product ?? raw;
-                return renderItem(product);
-              })}
+              {Array.isArray(products) ? products.map((product: Product, index: number) => (
+                <div key={product.id || index}>
+                  {renderItem(product)}
+                </div>
+              )) : (
+                <Box sx={{ textAlign: 'center', p: 4 }}>
+                  <Typography color="text.secondary">No products found</Typography>
+                </Box>
+              )}
             </List>
           )}
         </Box>

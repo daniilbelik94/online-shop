@@ -207,7 +207,7 @@ const ProductManagePage: React.FC = () => {
         
         // If the image URL starts with /uploads/, prepend the backend URL
         const fullUrl = imageUrl.startsWith('/uploads/') 
-          ? `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}${imageUrl}`
+          ? `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${imageUrl}`
           : imageUrl;
         
         console.log('Full image URL:', fullUrl); // Debug log

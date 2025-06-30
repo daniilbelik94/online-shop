@@ -3,15 +3,18 @@
 namespace App\Presentation\Controller;
 
 use App\Application\Service\UserSettingsService;
+use App\Application\Service\AuthService;
 use App\Infrastructure\Persistence\Postgres\PostgresUserSettingsRepository;
 
 class UserSettingsController
 {
     private UserSettingsService $userSettingsService;
+    private AuthService $authService;
 
-    public function __construct(UserSettingsService $userSettingsService)
+    public function __construct(UserSettingsService $userSettingsService, AuthService $authService)
     {
         $this->userSettingsService = $userSettingsService;
+        $this->authService = $authService;
     }
 
     public function getSettings(): void
@@ -125,11 +128,15 @@ class UserSettingsController
         }
 
         // Check for Authorization header (JWT)
-        $headers = getallheaders();
-        if (isset($headers['Authorization'])) {
-            $token = str_replace('Bearer ', '', $headers['Authorization']);
-            // TODO: Implement JWT token validation and extract user ID
-            // For now, return null if no session
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+
+        if (preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+            $token = $matches[1];
+            $payload = $this->authService->validateToken($token);
+
+            if ($payload && isset($payload['user_id'])) {
+                return $payload['user_id'];
+            }
         }
 
         return null;

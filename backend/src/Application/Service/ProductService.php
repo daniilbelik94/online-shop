@@ -202,10 +202,15 @@ class ProductService
         ];
     }
 
-    public function getFeaturedProducts(int $limit = 10): array
+    public function getFeaturedProducts(int $limit = 10, int $offset = 0): array
     {
-        $products = $this->productRepository->findFeatured($limit);
+        $products = $this->productRepository->findFeatured($limit, $offset);
         return array_map([$this, 'formatProduct'], $products);
+    }
+
+    public function getFeaturedProductsCount(): int
+    {
+        return $this->productRepository->countFeatured();
     }
 
     public function getRecommendedProducts(int $limit = 10): array
@@ -220,9 +225,7 @@ class ProductService
         $offset = ($page - 1) * $limit;
 
         $products = $this->productRepository->search($query, $limit, $offset);
-
-        // For search, we'll estimate total based on result count
-        $total = count($products) === $limit ? $limit * 2 : count($products);
+        $total = $this->productRepository->searchCount($query);
 
         return [
             'data' => array_map([$this, 'formatProduct'], $products),
@@ -233,6 +236,40 @@ class ProductService
                 'total_pages' => ceil($total / $limit)
             ]
         ];
+    }
+
+    public function searchProductsAdvanced(
+        string $query = '',
+        string $category = '',
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        string $sort = 'relevance',
+        int $limit = 20,
+        int $offset = 0
+    ): array {
+        return $this->productRepository->searchAdvanced(
+            $query,
+            $category,
+            $minPrice,
+            $maxPrice,
+            $sort,
+            $limit,
+            $offset
+        );
+    }
+
+    public function getSearchResultsCount(
+        string $query = '',
+        string $category = '',
+        ?float $minPrice = null,
+        ?float $maxPrice = null
+    ): int {
+        return $this->productRepository->searchAdvancedCount(
+            $query,
+            $category,
+            $minPrice,
+            $maxPrice
+        );
     }
 
     public function getLowStockProducts(): array

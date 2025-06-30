@@ -413,6 +413,15 @@ const ProfilePage: React.FC = () => {
     }
   }, [tabValue, isAuthenticated]);
 
+  // Load initial data when component mounts
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadOrders();
+      loadAddresses();
+      dispatch(fetchWishlist());
+    }
+  }, [isAuthenticated, dispatch]);
+
   // Handlers
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -731,7 +740,17 @@ const ProfilePage: React.FC = () => {
                 fontWeight: 'bold',
                 mb: 2,
               }}
-              icon={<GradeIcon />}
+              icon={
+                statistics.membershipLevel === 'Platinum' ? (
+                  <Box component="span" sx={{ fontSize: '1.2rem' }}>⭐</Box>
+                ) : statistics.membershipLevel === 'Gold' ? (
+                  <Box component="span" sx={{ fontSize: '1.2rem' }}>🥇</Box>
+                ) : statistics.membershipLevel === 'Silver' ? (
+                  <Box component="span" sx={{ fontSize: '1.2rem' }}>🥈</Box>
+                ) : (
+                  <Box component="span" sx={{ fontSize: '1.2rem' }}>🥉</Box>
+                )
+              }
             />
 
             {/* Loyalty Points */}
@@ -1385,7 +1404,25 @@ const ProfilePage: React.FC = () => {
                         <Card sx={{ borderRadius: 3 }}>
                           <Box sx={{ position: 'relative' }}>
                             <img
-                              src={product.image_url || (Array.isArray(product.images) ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.image_url) : undefined) || '/placeholder-product.jpg'}
+                              src={(() => {
+                                // Check if product has images array
+                                if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+                                  const firstImage = product.images[0];
+                                  if (typeof firstImage === 'string') {
+                                    return firstImage.startsWith('http') ? firstImage : `/backend/public/uploads/${firstImage}`;
+                                  }
+                                  if (firstImage && typeof firstImage === 'object' && 'image_url' in firstImage) {
+                                    return firstImage.image_url;
+                                  }
+                                }
+                                
+                                // Fallback to image_url field
+                                if (product.image_url) {
+                                  return product.image_url.startsWith('http') ? product.image_url : `/backend/public/uploads/${product.image_url}`;
+                                }
+                                
+                                return '/placeholder-product.jpg';
+                              })()}
                               alt={product.name}
                               style={{
                                 width: '100%',

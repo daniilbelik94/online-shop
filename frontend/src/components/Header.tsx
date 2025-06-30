@@ -66,6 +66,19 @@ import {
   History as HistoryIcon,
   Login as LoginIcon,
   PersonAdd as PersonAddIcon,
+  // Category icons
+  Computer as ElectronicsIcon,
+  Checkroom as ClothingIcon,
+  MenuBook as BooksIcon,
+  HomeOutlined as HomeGardenIcon,
+  SportsBasketball as SportsIcon,
+  Toys as ToysIcon,
+  Build as ToolsIcon,
+  Kitchen as KitchenIcon,
+  FitnessCenter as FitnessIcon,
+  Pets as PetsIcon,
+  DirectionsCar as AutomotiveIcon,
+  Palette as ArtIcon,
 } from '@mui/icons-material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -77,9 +90,10 @@ import {
   fetchCart
 } from '../store/slices/cartSlice';
 import { selectWishlistCount } from '../store/slices/wishlistSlice';
+import { selectNotifications } from '../store/slices/notificationSlice';
 import CartDrawer from './Cart/CartDrawer';
 import WishlistDrawer from './WishlistDrawer';
-import { publicAPI } from '../lib/api';
+import { publicAPI, api } from '../lib/api';
 
 const Header: React.FC = () => {
   const dispatch = useDispatch();
@@ -90,6 +104,7 @@ const Header: React.FC = () => {
   const cartItemsCount = useSelector(selectCartItemsCount);
   const wishlistCount = useSelector(selectWishlistCount);
   const notification = useSelector(selectCartNotification);
+  const notifications = useSelector(selectNotifications);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
@@ -148,21 +163,31 @@ const Header: React.FC = () => {
   };
 
   const loadUserStats = async () => {
+    if (!isAuthenticated) {
+      setUserStats({ orders: 0, spent: 0, points: 0 });
+      return;
+    }
+
     try {
-      // Temporarily disabled until backend endpoint is implemented
-      /*
-      const response = await fetch('/api/user/statistics', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+      // Load user orders to calculate stats
+      const ordersResponse = await api.get('/orders/my');
+      const orders = ordersResponse.data?.data?.data || [];
+      
+      const totalOrders = orders.length;
+      const totalSpent = Math.round(orders.reduce((sum: number, order: any) => {
+        return sum + (order.total_amount || order.total || 0);
+      }, 0) * 100) / 100; // Round to 2 decimal places
+      const loyaltyPoints = Math.floor(totalSpent); // 1 point per dollar spent
+      
+      setUserStats({
+        orders: totalOrders,
+        spent: totalSpent,
+        points: loyaltyPoints,
       });
-      if (response.ok) {
-        const data = await response.json();
-        setUserStats(data);
-      }
-      */
     } catch (error) {
       console.error('Failed to load user stats:', error);
+      // Keep default values on error
+      setUserStats({ orders: 0, spent: 0, points: 0 });
     }
   };
 
@@ -199,6 +224,63 @@ const Header: React.FC = () => {
     setSearchOpen(false);
     setSearchQuery('');
     setSearchSuggestions([]);
+  };
+
+  const getCategoryIcon = (categorySlug: string) => {
+    const iconProps = { fontSize: 'small' as const };
+    
+    switch (categorySlug?.toLowerCase()) {
+      case 'electronics':
+      case 'computers':
+      case 'technology':
+        return <ElectronicsIcon {...iconProps} />;
+      case 'clothing':
+      case 'fashion':
+      case 'apparel':
+        return <ClothingIcon {...iconProps} />;
+      case 'books':
+      case 'literature':
+      case 'reading':
+        return <BooksIcon {...iconProps} />;
+      case 'home-garden':
+      case 'home':
+      case 'garden':
+      case 'furniture':
+        return <HomeGardenIcon {...iconProps} />;
+      case 'sports':
+      case 'fitness':
+      case 'outdoor':
+        return <SportsIcon {...iconProps} />;
+      case 'toys':
+      case 'games':
+      case 'kids':
+        return <ToysIcon {...iconProps} />;
+      case 'tools':
+      case 'hardware':
+      case 'diy':
+        return <ToolsIcon {...iconProps} />;
+      case 'kitchen':
+      case 'appliances':
+      case 'cooking':
+        return <KitchenIcon {...iconProps} />;
+      case 'health':
+      case 'beauty':
+      case 'wellness':
+        return <FitnessIcon {...iconProps} />;
+      case 'pets':
+      case 'animals':
+        return <PetsIcon {...iconProps} />;
+      case 'automotive':
+      case 'cars':
+      case 'vehicles':
+        return <AutomotiveIcon {...iconProps} />;
+      case 'art':
+      case 'crafts':
+      case 'creative':
+        return <ArtIcon {...iconProps} />;
+      default:
+        return <CategoryIcon {...iconProps} />;
+    }
   };
 
   const navigationItems = [
@@ -469,7 +551,7 @@ const Header: React.FC = () => {
               {isAuthenticated && (
                 <Tooltip title="Notifications">
                   <IconButton color="inherit">
-                    <Badge badgeContent={2} color="error">
+                    <Badge badgeContent={notifications.length} color="error">
                       <NotificationsIcon />
                     </Badge>
                   </IconButton>
@@ -721,11 +803,11 @@ const Header: React.FC = () => {
           <MenuItem
             key={category.id}
             component={Link}
-            to={`/products?category=${category.id}`}
+            to={`/products?category=${category.slug || category.id}`}
             onClick={() => setCategoriesMenuAnchor(null)}
           >
             <ListItemIcon>
-              <CategoryIcon />
+              {getCategoryIcon(category.slug || category.name)}
             </ListItemIcon>
             <ListItemText primary={category.name} />
           </MenuItem>

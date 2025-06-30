@@ -27,46 +27,30 @@ class UserService
         string $lastName,
         ?string $phone = null
     ): User {
-        // Validate that email and username don't already exist
         if ($this->userRepository->emailExists($email)) {
             throw new \InvalidArgumentException('Email already exists');
         }
-
         if ($this->userRepository->usernameExists($username)) {
             throw new \InvalidArgumentException('Username already exists');
         }
-
-        // Hash the password
         $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-
-        // Create new user entity
         $user = new User($username, $email, $passwordHash, $firstName, $lastName, $phone);
-
-        // Save to repository
         $this->userRepository->save($user);
-
-        // Send welcome email
         $this->sendWelcomeEmail($user);
-
         return $user;
     }
 
     public function authenticateUser(string $email, string $password): ?User
     {
         $user = $this->userRepository->findByEmail($email);
-
         if (!$user || !$user->isActive()) {
             return null;
         }
-
         if (!password_verify($password, $user->getPasswordHash())) {
             return null;
         }
-
-        // Update last login timestamp
         $user->updateLastLogin();
         $this->userRepository->save($user);
-
         return $user;
     }
 
@@ -87,29 +71,23 @@ class UserService
         ?string $phone = null
     ): User {
         $user = $this->userRepository->findById($userId);
-
         if (!$user) {
             throw new \InvalidArgumentException('User not found');
         }
-
         $user->updateProfile($firstName, $lastName, $phone);
         $this->userRepository->save($user);
-
         return $user;
     }
 
     public function changeUserPassword(string $userId, string $currentPassword, string $newPassword): void
     {
         $user = $this->userRepository->findById($userId);
-
         if (!$user) {
             throw new \InvalidArgumentException('User not found');
         }
-
         if (!password_verify($currentPassword, $user->getPasswordHash())) {
             throw new \InvalidArgumentException('Current password is incorrect');
         }
-
         $newPasswordHash = password_hash($newPassword, PASSWORD_DEFAULT);
         $user->changePassword($newPasswordHash);
         $this->userRepository->save($user);
@@ -118,11 +96,9 @@ class UserService
     public function verifyUserEmail(string $userId): void
     {
         $user = $this->userRepository->findById($userId);
-
         if (!$user) {
             throw new \InvalidArgumentException('User not found');
         }
-
         $user->verifyEmail();
         $this->userRepository->save($user);
     }
@@ -130,11 +106,9 @@ class UserService
     public function deactivateUser(string $userId): void
     {
         $user = $this->userRepository->findById($userId);
-
         if (!$user) {
             throw new \InvalidArgumentException('User not found');
         }
-
         $user->deactivate();
         $this->userRepository->save($user);
     }
@@ -142,11 +116,9 @@ class UserService
     public function activateUser(string $userId): void
     {
         $user = $this->userRepository->findById($userId);
-
         if (!$user) {
             throw new \InvalidArgumentException('User not found');
         }
-
         $user->activate();
         $this->userRepository->save($user);
     }
@@ -157,13 +129,10 @@ class UserService
         if (!in_array($role, $validRoles)) {
             throw new \InvalidArgumentException('Invalid role');
         }
-
         $user = $this->userRepository->findById($userId);
-
         if (!$user) {
             throw new \InvalidArgumentException('User not found');
         }
-
         $user->setRole($role);
         $this->userRepository->save($user);
     }
@@ -200,7 +169,6 @@ class UserService
                 'username' => $user->getUsername(),
                 'email' => $user->getEmail(),
             ];
-
             $this->emailService->sendWelcomeEmail($user->getEmail(), $userData);
         } catch (\Exception $e) {
             error_log("Failed to send welcome email to {$user->getEmail()}: " . $e->getMessage());

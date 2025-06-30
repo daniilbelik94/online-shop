@@ -33,12 +33,18 @@ class WishlistController
 
             http_response_code(200);
             echo json_encode([
+                'success' => true,
                 'data' => $wishlist,
                 'count' => count($wishlist)
             ]);
         } catch (\Exception $e) {
+            error_log("Wishlist error: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             http_response_code(500);
-            echo json_encode(['error' => 'Failed to fetch wishlist: ' . $e->getMessage()]);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to fetch wishlist: ' . $e->getMessage()
+            ]);
         }
     }
 
@@ -68,17 +74,31 @@ class WishlistController
                 $input['product_id']
             );
 
+            // Get updated wishlist with product details
+            $wishlist = $this->wishlistService->getUserWishlist($currentUser['user_id']);
+
+            // Find the newly added item with product details
+            $newItem = null;
+            foreach ($wishlist as $item) {
+                if ($item['product_id'] === $input['product_id']) {
+                    $newItem = $item;
+                    break;
+                }
+            }
+
             http_response_code(201);
             echo json_encode([
+                'success' => true,
                 'message' => 'Product added to wishlist',
-                'data' => $wishlistItem->toArray()
+                'data' => $newItem,
+                'wishlist' => $wishlist
             ]);
         } catch (\InvalidArgumentException $e) {
             http_response_code(400);
-            echo json_encode(['error' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         } catch (\Exception $e) {
             http_response_code(500);
-            echo json_encode(['error' => 'Failed to add to wishlist: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'error' => 'Failed to add to wishlist: ' . $e->getMessage()]);
         }
     }
 
@@ -95,9 +115,10 @@ class WishlistController
         }
 
         try {
-            $input = json_decode(file_get_contents('php://input'), true);
+            // Get product_id from URL parameter (set by router)
+            $productId = $_REQUEST['product_id'] ?? null;
 
-            if (!isset($input['product_id'])) {
+            if (!$productId) {
                 http_response_code(400);
                 echo json_encode(['error' => 'Product ID is required']);
                 return;
@@ -105,7 +126,7 @@ class WishlistController
 
             $removed = $this->wishlistService->removeFromWishlist(
                 $currentUser['user_id'],
-                $input['product_id']
+                $productId
             );
 
             if ($removed) {

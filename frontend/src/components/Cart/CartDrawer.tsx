@@ -29,6 +29,7 @@ import {
   Fade,
   Skeleton,
   Stack,
+  Snackbar,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -52,15 +53,33 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../../store';
+import { RootState, AppDispatch } from '../../store';
 import { 
   removeFromCart, 
-  updateQuantity, 
+  updateCartItem, 
   clearCart,
   selectCartItems,
   selectCartTotal,
   selectCartCount,
+  selectCartLoading,
+  selectCartNotification,
+  clearNotification,
 } from '../../store/slices/cartSlice';
+import { 
+  addToWishlist,
+  selectWishlistLoading,
+} from '../../store/slices/wishlistSlice';
+import { 
+  addNotification,
+} from '../../store/slices/notificationSlice';
+import {
+  calculateCartTotals,
+  validatePromoCode,
+  formatPrice,
+  SHIPPING_OPTIONS,
+  getShippingOptionById,
+  type CartCalculations,
+} from '../../lib/calculations';
 
 interface CartDrawerProps {
   open: boolean;
@@ -69,99 +88,161 @@ interface CartDrawerProps {
 
 const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const cartItems = useSelector(selectCartItems);
   const cartTotal = useSelector(selectCartTotal);
   const cartCount = useSelector(selectCartCount);
+  const cartLoading = useSelector(selectCartLoading);
+  const cartNotification = useSelector(selectCartNotification);
+  const wishlistLoading = useSelector(selectWishlistLoading);
   
-  const [loading, setLoading] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [promoApplied, setPromoApplied] = useState(false);
-  const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoError, setPromoError] = useState('');
+  const [shippingMethod, setShippingMethod] = useState('standard');
+  const [calculations, setCalculations] = useState<CartCalculations>({
+    subtotal: 0,
+    discount: 0,
+    shipping: 0,
+    tax: 0,
+    total: 0,
+  });
   const [savedItems, setSavedItems] = useState<any[]>([]);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [clearCartDialogOpen, setClearCartDialogOpen] = useState(false);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
   
-  // Mock recommended products
-  const [recommendations] = useState([
-    {
-      id: 'rec1',
-      name: 'Wireless Bluetooth Headphones',
-      price: 99.99,
-      originalPrice: 149.99,
-      image: '/placeholder-product.jpg',
-      rating: 4.8,
-      discount: 33,
-    },
-    {
-      id: 'rec2',
-      name: 'Premium Phone Case',
-      price: 24.99,
-      originalPrice: 39.99,
-      image: '/placeholder-product.jpg',
-      rating: 4.6,
-      discount: 38,
-    },
-  ]);
+  // Load recommendations when drawer opens
+  useEffect(() => {
+    if (open && cartItems.length > 0) {
+      // Mock recommendations - in real app would fetch from API
+      setRecommendations([
+        {
+          id: 'rec1',
+          name: 'Wireless Bluetooth Headphones',
+          price: 99.99,
+          originalPrice: 149.99,
+          image: '/placeholder-product.jpg',
+          rating: 4.8,
+          discount: 33,
+        },
+        {
+          id: 'rec2',
+          name: 'Premium Phone Case',
+          price: 24.99,
+          originalPrice: 39.99,
+          image: '/placeholder-product.jpg',
+          rating: 4.6,
+          discount: 38,
+        },
+      ]);
+    }
+  }, [open, cartItems.length]);
 
-  const handleQuantityChange = (id: string, quantity: number) => {
+  // Recalculate totals when cart or promo changes
+  useEffect(() => {
+    const newCalculations = calculateCartTotals(
+      cartTotal,
+      promoApplied ? promoCode : undefined,
+      shippingMethod
+    );
+    setCalculations(newCalculations);
+  }, [cartTotal, promoCode, promoApplied, shippingMethod]);
+
+  // Auto-hide cart notifications
+  useEffect(() => {
+    if (cartNotification) {
+      const timer = setTimeout(() => {
+        dispatch(clearNotification());
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [cartNotification, dispatch]);
+
+  const handleQuantityChange = async (itemId: string, quantity: number) => {
     if (quantity <= 0) {
-      dispatch(removeFromCart(id));
+      await dispatch(removeFromCart(itemId));
     } else {
-      dispatch(updateQuantity({ id, quantity }));
+      await dispatch(updateCartItem({ itemId, quantity }));
     }
   };
 
-  const handleRemoveItem = (id: string) => {
-    dispatch(removeFromCart(id));
+  const handleRemoveItem = async (itemId: string) => {
+    await dispatch(removeFromCart(itemId));
   };
 
-  const handleSaveForLater = (item: any) => {
-    setSavedItems(prev => [...prev, item]);
-    dispatch(removeFromCart(item.id));
+  const handleSaveForLater = async (item: any) => {
+    try {
+      setSavedItems(prev => [...prev, item]);
+      await dispatch(removeFromCart(item.id));
+      dispatch(addNotification({
+        message: `${item.name} saved for later`,
+        type: 'success'
+      }));
+    } catch (error) {
+      dispatch(addNotification({
+        message: 'Failed to save item for later',
+        type: 'error'
+      }));
+    }
   };
 
-  const handleMoveToCart = (item: any) => {
-    setSavedItems(prev => prev.filter(saved => saved.id !== item.id));
-    // Dispatch add to cart action
+  const handleMoveToCart = async (item: any) => {
+    try {
+      setSavedItems(prev => prev.filter(saved => saved.id !== item.id));
+      // Add back to cart logic would go here
+      dispatch(addNotification({
+        message: `${item.name} moved back to cart`,
+        type: 'success'
+      }));
+    } catch (error) {
+      dispatch(addNotification({
+        message: 'Failed to move item to cart',
+        type: 'error'
+      }));
+    }
+  };
+
+  const handleAddToWishlist = async (item: any) => {
+    if (wishlistLoading) return;
+    
+    try {
+      await dispatch(addToWishlist(item.product_id));
+      dispatch(addNotification({
+        message: `${item.name} added to wishlist`,
+        type: 'success'
+      }));
+    } catch (error) {
+      dispatch(addNotification({
+        message: 'Failed to add to wishlist',
+        type: 'error'
+      }));
+    }
   };
 
   const handleApplyPromo = async () => {
-    setLoading(true);
-    setPromoError('');
+    if (!promoCode.trim()) {
+      setPromoError('Please enter a promo code');
+      return;
+    }
+
+    const validation = validatePromoCode(promoCode, cartTotal);
     
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock promo validation
-      const validPromoCodes = {
-        'SAVE10': 10,
-        'WELCOME20': 20,
-        'STUDENT15': 15,
-        'FIRST50': 50,
-      };
-      
-      const discount = validPromoCodes[promoCode.toUpperCase() as keyof typeof validPromoCodes];
-      
-      if (discount) {
-        setPromoDiscount(discount);
-        setPromoApplied(true);
-      } else {
-        setPromoError('Invalid promo code');
-      }
-    } catch (error) {
-      setPromoError('Failed to apply promo code');
-    } finally {
-      setLoading(false);
+    if (validation.valid) {
+      setPromoApplied(true);
+      setPromoError('');
+      dispatch(addNotification({
+        message: `Promo code "${promoCode}" applied successfully!`,
+        type: 'success'
+      }));
+    } else {
+      setPromoError(validation.error || 'Invalid promo code');
     }
   };
 
   const handleRemovePromo = () => {
     setPromoCode('');
     setPromoApplied(false);
-    setPromoDiscount(0);
     setPromoError('');
   };
 
@@ -170,34 +251,26 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
     navigate('/checkout');
   };
 
-  const handleClearCart = () => {
-    dispatch(clearCart());
+  const handleClearCart = async () => {
+    await dispatch(clearCart());
     setClearCartDialogOpen(false);
-  };
-
-  const calculateFinalTotal = () => {
-    const discount = (cartTotal * promoDiscount) / 100;
-    return cartTotal - discount;
-  };
-
-  const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
+    dispatch(addNotification({
+      message: 'Cart cleared successfully',
+      type: 'success'
+    }));
   };
 
   const getShippingInfo = () => {
-    if (cartTotal >= 50) {
-      return { text: 'Free Shipping!', color: 'success.main', icon: '🚚' };
-    } else {
-      const needed = 50 - cartTotal;
-      return { 
-        text: `Add ${formatPrice(needed)} more for free shipping`, 
-        color: 'warning.main',
-        icon: '📦'
-      };
+    const shippingOption = getShippingOptionById(shippingMethod);
+    if (!shippingOption) {
+      return { text: 'Standard Shipping', color: 'primary.main', icon: '📦' };
     }
+    
+    return {
+      text: shippingOption.label,
+      color: shippingOption.cost === 0 ? 'success.main' : 'primary.main',
+      icon: shippingOption.cost === 0 ? '🚚' : '📦'
+    };
   };
 
   return (
@@ -258,28 +331,16 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
               </IconButton>
             </Box>
             
-            {/* Shipping Progress */}
+            {/* Shipping Info */}
             <Box sx={{ mt: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
                   {getShippingInfo().icon} {getShippingInfo().text}
                 </Typography>
               </Box>
-              <Box sx={{ 
-                width: '100%', 
-                height: 6, 
-                borderRadius: 3,
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                overflow: 'hidden',
-              }}>
-                <Box sx={{ 
-                  width: `${Math.min((cartTotal / 50) * 100, 100)}%`,
-                  height: '100%',
-                  backgroundColor: cartTotal >= 50 ? '#4caf50' : '#ff9800',
-                  borderRadius: 3,
-                  transition: 'width 0.3s ease',
-                }} />
-              </Box>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                Shipping: {formatPrice(calculations.shipping)}
+              </Typography>
             </Box>
           </Box>
 
@@ -342,7 +403,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                     >
                       <ListItemAvatar>
                         <Avatar
-                          src={item.images?.[0] || '/placeholder-product.jpg'}
+                          src={item.image_url || '/placeholder-product.jpg'}
                           variant="rounded"
                           sx={{ 
                             width: 80, 
@@ -365,9 +426,9 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
                             <Typography variant="h6" fontWeight="bold" color="primary">
-                              {formatPrice(item.price)}
+                              {formatPrice(item.cart_price)}
                             </Typography>
-                            {item.originalPrice && item.originalPrice > item.price && (
+                            {item.current_price !== item.cart_price && (
                               <Typography 
                                 variant="body2" 
                                 sx={{ 
@@ -375,7 +436,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                                   color: 'text.secondary',
                                 }}
                               >
-                                {formatPrice(item.originalPrice)}
+                                {formatPrice(item.current_price)}
                               </Typography>
                             )}
                           </Box>
@@ -388,6 +449,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                             <IconButton
                               size="small"
                               onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                              disabled={cartLoading}
                               sx={{
                                 border: '1px solid rgba(102, 126, 234, 0.3)',
                                 borderRadius: 1,
@@ -416,6 +478,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                             <IconButton
                               size="small"
                               onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                              disabled={cartLoading}
                               sx={{
                                 border: '1px solid rgba(102, 126, 234, 0.3)',
                                 borderRadius: 1,
@@ -443,14 +506,17 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                               <IconButton
                                 size="small"
                                 onClick={() => handleRemoveItem(item.id)}
+                                disabled={cartLoading}
                                 sx={{ color: 'error.main' }}
                               >
                                 <DeleteIcon />
                               </IconButton>
                             </Tooltip>
-                            <Tooltip title="Add to favorites">
+                            <Tooltip title="Add to wishlist">
                               <IconButton
                                 size="small"
+                                onClick={() => handleAddToWishlist(item)}
+                                disabled={wishlistLoading}
                                 sx={{ color: 'secondary.main' }}
                               >
                                 <FavoriteIcon />
@@ -460,9 +526,17 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                           
                           {/* Stock Info */}
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                            <StockIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                            <Typography variant="caption" color="success.main">
-                              In Stock
+                            <StockIcon sx={{ 
+                              fontSize: 16, 
+                              color: item.is_active && item.stock_quantity > 0 ? 'success.main' : 'error.main'
+                            }} />
+                            <Typography variant="caption" color={
+                              item.is_active && item.stock_quantity > 0 ? 'success.main' : 'error.main'
+                            }>
+                              {item.is_active && item.stock_quantity > 0 
+                                ? `In Stock (${item.stock_quantity})` 
+                                : 'Out of Stock'
+                              }
                             </Typography>
                           </Box>
                         </Box>
@@ -471,7 +545,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                       {/* Item Total */}
                       <Box sx={{ textAlign: 'right', ml: 2 }}>
                         <Typography variant="h6" fontWeight="bold" color="primary">
-                          {formatPrice(item.price * item.quantity)}
+                          {formatPrice(item.total)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           Total
@@ -494,7 +568,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                     <CardContent sx={{ p: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Avatar
-                          src={item.images?.[0] || '/placeholder-product.jpg'}
+                          src={item.image_url || '/placeholder-product.jpg'}
                           variant="rounded"
                           sx={{ width: 50, height: 50 }}
                         />
@@ -503,7 +577,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                             {item.name}
                           </Typography>
                           <Typography variant="body2" color="primary">
-                            {formatPrice(item.price)}
+                            {formatPrice(item.cart_price || item.current_price)}
                           </Typography>
                         </Box>
                         <Button
@@ -618,10 +692,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                     <Button
                       variant="outlined"
                       onClick={handleApplyPromo}
-                      disabled={!promoCode || loading}
+                      disabled={!promoCode || cartLoading}
                       sx={{ px: 3, borderRadius: 2 }}
                     >
-                      {loading ? <CircularProgress size={20} /> : 'Apply'}
+                      {cartLoading ? <CircularProgress size={20} /> : 'Apply'}
                     </Button>
                   </Box>
                 ) : (
@@ -634,7 +708,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                     }
                     sx={{ borderRadius: 2 }}
                   >
-                    Promo code "{promoCode}" applied! Save {promoDiscount}%
+                    Promo code "{promoCode}" applied! Save {formatPrice(calculations.discount)}
                   </Alert>
                 )}
               </Box>
@@ -653,25 +727,32 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2">Subtotal:</Typography>
                     <Typography variant="body2" fontWeight="bold">
-                      {formatPrice(cartTotal)}
+                      {formatPrice(calculations.subtotal)}
                     </Typography>
                   </Box>
                   
-                  {promoApplied && (
+                  {calculations.discount > 0 && (
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                       <Typography variant="body2" color="success.main">
-                        Discount ({promoDiscount}%):
+                        Discount:
                       </Typography>
                       <Typography variant="body2" fontWeight="bold" color="success.main">
-                        -{formatPrice((cartTotal * promoDiscount) / 100)}
+                        -{formatPrice(calculations.discount)}
                       </Typography>
                     </Box>
                   )}
                   
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2">Shipping:</Typography>
-                    <Typography variant="body2" fontWeight="bold" color={cartTotal >= 50 ? 'success.main' : 'inherit'}>
-                      {cartTotal >= 50 ? 'FREE' : formatPrice(5.99)}
+                    <Typography variant="body2" fontWeight="bold" color={calculations.shipping === 0 ? 'success.main' : 'inherit'}>
+                      {calculations.shipping === 0 ? 'FREE' : formatPrice(calculations.shipping)}
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2">Tax:</Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {formatPrice(calculations.tax)}
                     </Typography>
                   </Box>
                   
@@ -682,7 +763,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                       Total:
                     </Typography>
                     <Typography variant="h6" fontWeight="bold" color="primary">
-                      {formatPrice(calculateFinalTotal() + (cartTotal >= 50 ? 0 : 5.99))}
+                      {formatPrice(calculations.total)}
                     </Typography>
                   </Box>
                 </Box>
@@ -717,21 +798,34 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                     fullWidth
                     onClick={() => {
                       onClose();
+                      navigate('/cart');
+                    }}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    View Cart
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    onClick={() => {
+                      onClose();
                       navigate('/products');
                     }}
                     sx={{ borderRadius: 2 }}
                   >
                     Continue Shopping
                   </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => setClearCartDialogOpen(true)}
-                    sx={{ borderRadius: 2, minWidth: 120 }}
-                  >
-                    Clear Cart
-                  </Button>
                 </Box>
+                
+                <Button
+                  variant="text"
+                  fullWidth
+                  color="error"
+                  onClick={() => setClearCartDialogOpen(true)}
+                  sx={{ borderRadius: 2, mt: 1 }}
+                >
+                  Clear Cart
+                </Button>
               </Stack>
 
               {/* Security Badge */}

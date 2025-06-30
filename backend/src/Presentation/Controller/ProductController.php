@@ -131,33 +131,66 @@ class ProductController
     {
         try {
             $query = $_GET['q'] ?? '';
+            $category = $_GET['category'] ?? '';
+            $minPrice = $_GET['min_price'] ?? null;
+            $maxPrice = $_GET['max_price'] ?? null;
+            $sort = $_GET['sort'] ?? 'relevance';
+            $page = max(1, intval($_GET['page'] ?? 1));
+            $limit = min(50, max(1, intval($_GET['limit'] ?? 20)));
+            $offset = ($page - 1) * $limit;
 
-            if (empty($query)) {
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'Search query is required'
-                ]);
-                return;
+            if (empty($query) && empty($category) && $minPrice === null && $maxPrice === null) {
+                // If no search criteria, return featured products
+                $products = $this->productService->getFeaturedProducts($limit, $offset);
+                $total = $this->productService->getFeaturedProductsCount();
+            } else {
+                // Full-text search with filters
+                $products = $this->productService->searchProductsAdvanced(
+                    $query,
+                    $category,
+                    $minPrice,
+                    $maxPrice,
+                    $sort,
+                    $limit,
+                    $offset
+                );
+                $total = $this->productService->getSearchResultsCount(
+                    $query,
+                    $category,
+                    $minPrice,
+                    $maxPrice
+                );
             }
 
-            $page = (int) ($_GET['page'] ?? 1);
-            $limit = min((int) ($_GET['limit'] ?? 20), 50);
-
-            $result = $this->productService->searchProducts($query, $page, $limit);
+            $totalPages = ceil($total / $limit);
 
             http_response_code(200);
             echo json_encode([
                 'success' => true,
-                'data' => $result['data'],
-                'pagination' => $result['pagination'],
-                'query' => $query
+                'data' => array_map(function ($product) {
+                    return $product->toArray();
+                }, $products),
+                'pagination' => [
+                    'current_page' => $page,
+                    'total_pages' => $totalPages,
+                    'total_items' => $total,
+                    'items_per_page' => $limit,
+                    'has_next' => $page < $totalPages,
+                    'has_prev' => $page > 1
+                ],
+                'filters' => [
+                    'query' => $query,
+                    'category' => $category,
+                    'min_price' => $minPrice,
+                    'max_price' => $maxPrice,
+                    'sort' => $sort
+                ]
             ]);
         } catch (\Exception $e) {
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'error' => 'Search failed: ' . $e->getMessage()
+                'message' => 'Failed to search products: ' . $e->getMessage()
             ]);
         }
     }
@@ -223,6 +256,29 @@ class ProductController
             echo json_encode([
                 'success' => false,
                 'error' => 'Failed to get categories: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function related(string $productId): void
+    {
+        try {
+            $limit = min((int) ($_GET['limit'] ?? 4), 8);
+
+            // For now, just return featured products as related
+            // In a real implementation, you would find products by category or other criteria
+            $result = $this->productService->getFeaturedProducts($limit);
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to get related products: ' . $e->getMessage()
             ]);
         }
     }

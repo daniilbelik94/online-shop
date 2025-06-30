@@ -52,6 +52,7 @@ import {
   Verified as VerifiedIcon,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
+import PaymentIcons from './PaymentIcons';
 
 const Footer: React.FC = () => {
   const theme = useTheme();
@@ -73,9 +74,9 @@ const Footer: React.FC = () => {
   const quickLinks = [
     { label: 'Home', path: '/', icon: <HomeIcon /> },
     { label: 'Products', path: '/products', icon: <ProductsIcon /> },
-    { label: 'About Us', path: '/about', icon: <InfoIcon /> },
+    { label: 'About Us', path: '/about-us', icon: <InfoIcon /> },
     { label: 'Contact', path: '/contact', icon: <ContactIcon /> },
-    { label: 'Help Center', path: '/help', icon: <HelpIcon /> },
+    { label: 'Help Center', path: '/help-center', icon: <HelpIcon /> },
   ];
 
   const categories = [
@@ -87,11 +88,11 @@ const Footer: React.FC = () => {
   ];
 
   const legal = [
-    { label: 'Privacy Policy', path: '/privacy', icon: <PrivacyIcon /> },
-    { label: 'Terms of Service', path: '/terms', icon: <TermsIcon /> },
-    { label: 'Refund Policy', path: '/refunds', icon: <RefreshIcon /> },
-    { label: 'Shipping Policy', path: '/shipping', icon: <ShippingIcon /> },
-    { label: 'Cookie Policy', path: '/cookies', icon: <PolicyIcon /> },
+    { label: 'Privacy Policy', path: '/privacy-policy', icon: <PrivacyIcon /> },
+    { label: 'Terms of Service', path: '/terms-of-service', icon: <TermsIcon /> },
+    { label: 'Refund Policy', path: '/refund-policy', icon: <RefreshIcon /> },
+    { label: 'Shipping Policy', path: '/shipping-policy', icon: <ShippingIcon /> },
+    { label: 'Cookie Policy', path: '/cookie-policy', icon: <PolicyIcon /> },
   ];
 
   const features = [
@@ -157,26 +158,50 @@ const Footer: React.FC = () => {
                 <Box sx={{ 
                   textAlign: 'center',
                   p: { xs: 2, md: 3 },
-                  borderRadius: 2,
+                  borderRadius: 3,
                   bgcolor: 'white',
-                  boxShadow: 1,
-                  transition: 'all 0.3s ease',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: '-100%',
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+                    transition: 'left 0.5s',
+                  },
                   '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: 3,
+                    transform: 'translateY(-8px) scale(1.02)',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
+                    '&::before': {
+                      left: '100%',
+                    },
+                  },
+                  '&:focus-within': {
+                    transform: 'translateY(-8px) scale(1.02)',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
                   }
                 }}>
                   <Box sx={{ 
                     width: 60,
                     height: 60,
                     borderRadius: '50%',
-                    bgcolor: 'primary.main',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     mx: 'auto',
                     mb: 2,
-                    color: 'white'
+                    color: 'white',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'rotate(360deg) scale(1.1)',
+                    }
                   }}>
                     {feature.icon}
                   </Box>
@@ -231,14 +256,27 @@ const Footer: React.FC = () => {
                   '& .MuiOutlinedInput-root': {
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
                     borderRadius: 2,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     '& fieldset': {
                       borderColor: 'transparent',
+                      transition: 'border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     },
-                    '&:hover fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.5)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                      '& fieldset': {
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                      },
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: 'white',
+                    '&.Mui-focused': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                      '& fieldset': {
+                        borderColor: 'white',
+                        borderWidth: '2px',
+                      },
                     },
                   }
                 }}
@@ -256,8 +294,32 @@ const Footer: React.FC = () => {
                   py: 1.5,
                   borderRadius: 2,
                   minWidth: 120,
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: '-100%',
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                    transition: 'left 0.5s',
+                  },
                   '&:hover': {
                     bgcolor: 'rgba(255, 255, 255, 0.3)',
+                    transform: 'translateY(-2px) scale(1.02)',
+                    boxShadow: '0 8px 25px rgba(0,0,0,0.2)',
+                    '&::before': {
+                      left: '100%',
+                    },
+                  },
+                  '&:focus': {
+                    bgcolor: 'rgba(255, 255, 255, 0.3)',
+                    transform: 'translateY(-2px) scale(1.02)',
+                    boxShadow: '0 8px 25px rgba(0,0,0,0.2)',
                   }
                 }}
               >
@@ -271,7 +333,13 @@ const Footer: React.FC = () => {
                 sx={{ 
                   bgcolor: 'rgba(255, 255, 255, 0.2)', 
                   color: 'white',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.3)',
+                    transform: 'translateY(-2px) scale(1.05)',
+                  }
                 }}
               />
               <Chip
@@ -279,7 +347,13 @@ const Footer: React.FC = () => {
                 sx={{ 
                   bgcolor: 'rgba(255, 255, 255, 0.2)', 
                   color: 'white',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.3)',
+                    transform: 'translateY(-2px) scale(1.05)',
+                  }
                 }}
               />
               <Chip
@@ -287,7 +361,13 @@ const Footer: React.FC = () => {
                 sx={{ 
                   bgcolor: 'rgba(255, 255, 255, 0.2)', 
                   color: 'white',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.3)',
+                    transform: 'translateY(-2px) scale(1.05)',
+                  }
                 }}
               />
             </Box>
@@ -318,7 +398,11 @@ const Footer: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '1.5rem'
+                    fontSize: '1.5rem',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'rotate(360deg) scale(1.1)',
+                    }
                   }}>
                     🛍️
                   </Box>
@@ -333,19 +417,63 @@ const Footer: React.FC = () => {
                 
                 {/* Contact Info */}
                 <Stack spacing={1}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'translateX(8px)',
+                      '& .MuiSvgIcon-root': {
+                        color: 'primary.main',
+                      }
+                    }
+                  }}>
                     <PhoneIcon fontSize="small" />
                     <Typography variant="body2">+1 (555) 123-4567</Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'translateX(8px)',
+                      '& .MuiSvgIcon-root': {
+                        color: 'primary.main',
+                      }
+                    }
+                  }}>
                     <EmailIcon fontSize="small" />
                     <Typography variant="body2">support@shophub.com</Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'translateX(8px)',
+                      '& .MuiSvgIcon-root': {
+                        color: 'primary.main',
+                      }
+                    }
+                  }}>
                     <LocationIcon fontSize="small" />
                     <Typography variant="body2">123 Commerce St, City, State 12345</Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'translateX(8px)',
+                      '& .MuiSvgIcon-root': {
+                        color: 'primary.main',
+                      }
+                    }
+                  }}>
                     <ScheduleIcon fontSize="small" />
                     <Typography variant="body2">Mon-Fri: 9AM-6PM EST</Typography>
                   </Box>
@@ -365,17 +493,34 @@ const Footer: React.FC = () => {
                       component={RouterLink}
                       to={link.path}
                       color="inherit"
-                      underline="hover"
+                      underline="none"
                       sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
                         gap: 1,
                         py: 0.5,
+                        px: 1,
+                        borderRadius: 1,
                         opacity: 0.8,
-                        '&:hover': { opacity: 1 }
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        textDecoration: 'none',
+                        '&:hover, &:focus': {
+                          opacity: 1,
+                          transform: 'translateX(8px)',
+                          bgcolor: 'rgba(255, 255, 255, 0.1)',
+                          '& .MuiSvgIcon-root': {
+                            color: 'primary.main',
+                            transform: 'scale(1.2)',
+                          },
+                          textDecoration: 'none',
+                        },
                       }}
                     >
-                      {link.icon}
+                      <Box sx={{
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}>
+                        {link.icon}
+                      </Box>
                       <Typography variant="body2">{link.label}</Typography>
                     </Link>
                   </ListItem>
@@ -395,11 +540,20 @@ const Footer: React.FC = () => {
                       component={RouterLink}
                       to={category.path}
                       color="inherit"
-                      underline="hover"
+                      underline="none"
                       sx={{ 
                         py: 0.5,
+                        px: 1,
+                        borderRadius: 1,
                         opacity: 0.8,
-                        '&:hover': { opacity: 1 }
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        textDecoration: 'none',
+                        '&:hover, &:focus': {
+                          opacity: 1,
+                          transform: 'translateX(8px)',
+                          bgcolor: 'rgba(255, 255, 255, 0.1)',
+                          textDecoration: 'none',
+                        },
                       }}
                     >
                       <Typography variant="body2">{category.label}</Typography>
@@ -421,17 +575,34 @@ const Footer: React.FC = () => {
                       component={RouterLink}
                       to={item.path}
                       color="inherit"
-                      underline="hover"
+                      underline="none"
                       sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
                         gap: 1,
                         py: 0.5,
+                        px: 1,
+                        borderRadius: 1,
                         opacity: 0.8,
-                        '&:hover': { opacity: 1 }
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        textDecoration: 'none',
+                        '&:hover, &:focus': {
+                          opacity: 1,
+                          transform: 'translateX(8px)',
+                          bgcolor: 'rgba(255, 255, 255, 0.1)',
+                          '& .MuiSvgIcon-root': {
+                            color: 'primary.main',
+                            transform: 'scale(1.2)',
+                          },
+                          textDecoration: 'none',
+                        },
                       }}
                     >
-                      {item.icon}
+                      <Box sx={{
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}>
+                        {item.icon}
+                      </Box>
                       <Typography variant="body2">{item.label}</Typography>
                     </Link>
                   </ListItem>
@@ -456,11 +627,33 @@ const Footer: React.FC = () => {
                     sx={{
                       bgcolor: 'rgba(255, 255, 255, 0.1)',
                       color: 'white',
+                      backdropFilter: 'blur(10px)',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: '-100%',
+                        width: '100%',
+                        height: '100%',
+                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                        transition: 'left 0.5s',
+                      },
                       '&:hover': {
                         bgcolor: 'primary.main',
-                        transform: 'scale(1.1)',
+                        transform: 'translateY(-4px) scale(1.1)',
+                        boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
+                        '&::before': {
+                          left: '100%',
+                        },
                       },
-                      transition: 'all 0.2s ease'
+                      '&:focus': {
+                        bgcolor: 'primary.main',
+                        transform: 'translateY(-4px) scale(1.1)',
+                        boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
+                      }
                     }}
                   >
                     {social.icon}
@@ -480,7 +673,13 @@ const Footer: React.FC = () => {
                   sx={{ 
                     color: 'white', 
                     borderColor: 'rgba(255, 255, 255, 0.3)',
-                    '& .MuiChip-icon': { color: 'gold' }
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '& .MuiChip-icon': { color: 'gold' },
+                    '&:hover': {
+                      transform: 'translateY(-2px) scale(1.05)',
+                      borderColor: 'gold',
+                      bgcolor: 'rgba(255, 215, 0, 0.1)',
+                    }
                   }}
                 />
                 <Chip
@@ -490,7 +689,13 @@ const Footer: React.FC = () => {
                   sx={{ 
                     color: 'white', 
                     borderColor: 'rgba(255, 255, 255, 0.3)',
-                    '& .MuiChip-icon': { color: 'green' }
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '& .MuiChip-icon': { color: 'green' },
+                    '&:hover': {
+                      transform: 'translateY(-2px) scale(1.05)',
+                      borderColor: 'green',
+                      bgcolor: 'rgba(0, 255, 0, 0.1)',
+                    }
                   }}
                 />
               </Box>
@@ -499,28 +704,7 @@ const Footer: React.FC = () => {
               <Typography variant="body2" sx={{ mb: 1, opacity: 0.8 }}>
                 We accept:
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Chip
-                  label="💳 Visa"
-                  size="small"
-                  sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
-                />
-                <Chip
-                  label="💳 Mastercard"
-                  size="small"
-                  sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
-                />
-                <Chip
-                  label="💰 PayPal"
-                  size="small"
-                  sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
-                />
-                <Chip
-                  label="🍎 Apple Pay"
-                  size="small"
-                  sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
-                />
-              </Box>
+              <PaymentIcons />
             </Grid>
           </Grid>
 
@@ -542,7 +726,14 @@ const Footer: React.FC = () => {
                 <Typography variant="body2" sx={{ opacity: 0.8 }}>
                   Made with
                 </Typography>
-                <FavoriteIcon sx={{ color: 'red', fontSize: '1rem' }} />
+                <FavoriteIcon sx={{ 
+                  color: 'red', 
+                  fontSize: '1rem',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    transform: 'scale(1.5) rotate(360deg)',
+                  }
+                }} />
                 <Typography variant="body2" sx={{ opacity: 0.8 }}>
                   for our customers
                 </Typography>
@@ -559,7 +750,12 @@ const Footer: React.FC = () => {
                 sx={{ 
                   bgcolor: 'primary.main', 
                   color: 'white',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    transform: 'translateY(-2px) scale(1.05)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  }
                 }}
               />
             </Box>

@@ -104,9 +104,6 @@ class OrderService
             $this->productRepository->update($product);
         }
 
-        // Clear cart
-        $this->cartService->clearCart($userId);
-
         // Send order confirmation email
         $this->sendOrderConfirmationEmail($savedOrder);
 
@@ -251,7 +248,7 @@ class OrderService
 
         $oldStatus = $order->getStatus();
         $order->updateStatus($status);
-        $updatedOrder = $this->orderRepository->save($order);
+        $updatedOrder = $this->orderRepository->update($order);
 
         // Send status update email if status changed
         if ($oldStatus !== $status) {
@@ -269,7 +266,7 @@ class OrderService
         }
 
         $order->updatePaymentStatus($paymentStatus);
-        $updatedOrder = $this->orderRepository->save($order);
+        $updatedOrder = $this->orderRepository->update($order);
 
         // Send email notification for payment confirmation
         if ($paymentStatus === 'paid') {
@@ -380,10 +377,17 @@ class OrderService
 
     private function formatOrderForResponse(Order $order): array
     {
+        // Get user information
+        $user = $this->userRepository->findById($order->getUserId());
+        $userName = $user ? $user->getFirstName() . ' ' . $user->getLastName() : 'Unknown User';
+        $userEmail = $user ? $user->getEmail() : 'No email';
+
         return [
             'id' => $order->getId(),
             'order_number' => $order->getOrderNumber(),
             'user_id' => $order->getUserId(),
+            'user_name' => $userName,
+            'user_email' => $userEmail,
             'status' => $order->getStatus(),
             'payment_status' => $order->getPaymentStatus(),
             'payment_method' => $order->getPaymentMethod(),

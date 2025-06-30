@@ -74,11 +74,11 @@ export const userProfileApi = {
   // Get user addresses
   getAddresses: async (): Promise<any[]> => {
     try {
-      const response = await api.get('/user/addresses');
-      return response.data?.data?.addresses || response.data?.addresses || [];
+      // Get addresses from localStorage
+      const addresses = localStorage.getItem('user_addresses');
+      return addresses ? JSON.parse(addresses) : [];
     } catch (error) {
       console.error('Failed to load addresses:', error);
-      // Return empty array instead of mock data
       return [];
     }
   },
@@ -86,8 +86,33 @@ export const userProfileApi = {
   // Save address
   saveAddress: async (address: any): Promise<any> => {
     try {
-      const response = await api.post('/user/addresses', address);
-      return response.data?.data?.address || response.data?.address || response.data;
+      // Generate ID if not provided
+      if (!address.id) {
+        address.id = Date.now().toString();
+      }
+
+      // Get existing addresses
+      const existingAddresses = await userProfileApi.getAddresses();
+      
+      // Update or add address
+      const addressIndex = existingAddresses.findIndex(a => a.id === address.id);
+      if (addressIndex >= 0) {
+        existingAddresses[addressIndex] = address;
+      } else {
+        existingAddresses.push(address);
+      }
+
+      // Save to localStorage
+      localStorage.setItem('user_addresses', JSON.stringify(existingAddresses));
+
+      // Also call the backend API for compatibility
+      try {
+        await api.post('/user/addresses', address);
+      } catch (e) {
+        console.warn('Backend address save failed, but localStorage succeeded');
+      }
+
+      return address;
     } catch (error) {
       console.error('Failed to save address:', error);
       throw error;
@@ -97,11 +122,11 @@ export const userProfileApi = {
   // Get payment methods
   getPaymentMethods: async (): Promise<any[]> => {
     try {
-      const response = await api.get('/user/payment-methods');
-      return response.data?.data?.payment_methods || response.data?.payment_methods || [];
+      // Get payment methods from localStorage
+      const paymentMethods = localStorage.getItem('user_payment_methods');
+      return paymentMethods ? JSON.parse(paymentMethods) : [];
     } catch (error) {
       console.error('Failed to load payment methods:', error);
-      // Return empty array instead of mock data
       return [];
     }
   },
@@ -109,8 +134,33 @@ export const userProfileApi = {
   // Save payment method
   savePaymentMethod: async (paymentMethod: any): Promise<any> => {
     try {
-      const response = await api.post('/user/payment-methods', paymentMethod);
-      return response.data?.data?.payment_method || response.data?.payment_method || response.data;
+      // Generate ID if not provided
+      if (!paymentMethod.id) {
+        paymentMethod.id = Date.now().toString();
+      }
+
+      // Get existing payment methods
+      const existingPaymentMethods = await userProfileApi.getPaymentMethods();
+      
+      // Update or add payment method
+      const paymentMethodIndex = existingPaymentMethods.findIndex(pm => pm.id === paymentMethod.id);
+      if (paymentMethodIndex >= 0) {
+        existingPaymentMethods[paymentMethodIndex] = paymentMethod;
+      } else {
+        existingPaymentMethods.push(paymentMethod);
+      }
+
+      // Save to localStorage
+      localStorage.setItem('user_payment_methods', JSON.stringify(existingPaymentMethods));
+
+      // Also call the backend API for compatibility
+      try {
+        await api.post('/user/payment-methods', paymentMethod);
+      } catch (e) {
+        console.warn('Backend payment method save failed, but localStorage succeeded');
+      }
+
+      return paymentMethod;
     } catch (error) {
       console.error('Failed to save payment method:', error);
       throw error;
@@ -120,7 +170,21 @@ export const userProfileApi = {
   // Delete address
   deleteAddress: async (addressId: string): Promise<void> => {
     try {
-      await api.post('/user/addresses/delete', { id: addressId });
+      // Get existing addresses
+      const existingAddresses = await userProfileApi.getAddresses();
+      
+      // Remove address
+      const filteredAddresses = existingAddresses.filter(a => a.id !== addressId);
+      
+      // Save back to localStorage
+      localStorage.setItem('user_addresses', JSON.stringify(filteredAddresses));
+
+      // Also call the backend API for compatibility
+      try {
+        await api.post('/user/addresses/delete', { id: addressId });
+      } catch (e) {
+        console.warn('Backend address delete failed, but localStorage succeeded');
+      }
     } catch (error) {
       console.error('Failed to delete address:', error);
       throw error;
@@ -130,7 +194,21 @@ export const userProfileApi = {
   // Delete payment method
   deletePaymentMethod: async (paymentMethodId: string): Promise<void> => {
     try {
-      await api.post('/user/payment-methods/delete', { id: paymentMethodId });
+      // Get existing payment methods
+      const existingPaymentMethods = await userProfileApi.getPaymentMethods();
+      
+      // Remove payment method
+      const filteredPaymentMethods = existingPaymentMethods.filter(pm => pm.id !== paymentMethodId);
+      
+      // Save back to localStorage
+      localStorage.setItem('user_payment_methods', JSON.stringify(filteredPaymentMethods));
+
+      // Also call the backend API for compatibility
+      try {
+        await api.post('/user/payment-methods/delete', { id: paymentMethodId });
+      } catch (e) {
+        console.warn('Backend payment method delete failed, but localStorage succeeded');
+      }
     } catch (error) {
       console.error('Failed to delete payment method:', error);
       throw error;

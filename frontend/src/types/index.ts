@@ -52,6 +52,21 @@ export interface CartItem {
   price: number;
 }
 
+// Wishlist types
+export interface WishlistItem {
+  id: string;
+  user_id: string;
+  product_id: string;
+  created_at: string;
+  product: Product;
+}
+
+export interface WishlistState {
+  items: WishlistItem[];
+  loading: boolean;
+  error: string | null;
+}
+
 // Order types
 export interface Order {
   id: string;

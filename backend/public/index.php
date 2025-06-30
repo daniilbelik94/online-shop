@@ -74,7 +74,7 @@ if ($appEnv === 'production') {
     // passes the pre-flight check.
 
     header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Session-ID');
 } else {
     // Development environment: allow local dev servers
@@ -91,7 +91,7 @@ if ($appEnv === 'production') {
     }
 
     header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Session-ID');
     header('Access-Control-Expose-Headers: Authorization');
 }
@@ -118,12 +118,19 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
 
+    // Make config and pdo globally accessible
+    $GLOBALS['config'] = $config;
+    $GLOBALS['pdo'] = $pdo;
+
     // Dependency injection setup
     $userRepository = new \App\Infrastructure\Persistence\Postgres\PostgresUserRepository($pdo);
     $productRepository = new \App\Infrastructure\Persistence\Postgres\PostgresProductRepository($pdo);
     $categoryRepository = new \App\Infrastructure\Persistence\Postgres\PostgresCategoryRepository($pdo);
     $orderRepository = new \App\Infrastructure\Persistence\Postgres\PostgresOrderRepository($pdo);
     $wishlistRepository = new \App\Infrastructure\Persistence\Postgres\PostgresWishlistRepository($pdo);
+    $offerRepository = new \App\Infrastructure\Persistence\Postgres\PostgresOfferRepository($pdo);
+    $couponRepository = new \App\Infrastructure\Persistence\Postgres\PostgresCouponRepository($pdo);
+    $userSettingsRepository = new \App\Infrastructure\Persistence\Postgres\PostgresUserSettingsRepository($pdo);
 
     $emailService = new \App\Infrastructure\Service\EmailService($config);
     $userService = new \App\Application\Service\UserService($userRepository, $emailService);
@@ -132,6 +139,9 @@ try {
     $cartService = new \App\Application\Service\CartService($pdo, $productRepository, $userRepository);
     $orderService = new \App\Application\Service\OrderService($orderRepository, $productRepository, $userRepository, $cartService, $emailService);
     $wishlistService = new \App\Application\Service\WishlistService($wishlistRepository, $productRepository);
+    $offerService = new \App\Application\Service\OfferService($offerRepository, $productRepository, $categoryRepository);
+    $couponService = new \App\Application\Service\CouponService($couponRepository, $productRepository, $categoryRepository);
+    $userSettingsService = new \App\Application\Service\UserSettingsService($userSettingsRepository);
 
     $authService = new \App\Application\Service\AuthService(
         $userService,
@@ -141,6 +151,7 @@ try {
 
     // Middleware
     $authMiddleware = new \App\Presentation\Middleware\AuthMiddleware($authService);
+    $rateLimitMiddleware = new \App\Presentation\Middleware\RateLimitMiddleware();
 
     // Controllers
     $authController = new \App\Presentation\Controller\AuthController($authService);
@@ -148,10 +159,14 @@ try {
     $productController = new \App\Presentation\Controller\ProductController($productService, $categoryService);
     $adminProductController = new \App\Presentation\Controller\AdminProductController($productService, $authMiddleware);
     $cartController = new \App\Presentation\Controller\CartController($cartService, $authMiddleware);
-    $orderController = new \App\Presentation\Controller\OrderController($orderService, $authMiddleware);
+    $orderController = new \App\Presentation\Controller\OrderController($orderService, $authMiddleware, $userRepository);
     $imageUploadController = new \App\Presentation\Controller\ImageUploadController();
     $userProfileController = new \App\Presentation\Controller\UserProfileController($authMiddleware);
     $wishlistController = new \App\Presentation\Controller\WishlistController($wishlistService, $authMiddleware);
+    $offerController = new \App\Presentation\Controller\OfferController($offerService, $authMiddleware);
+    $couponController = new \App\Presentation\Controller\CouponController($couponService, $authMiddleware);
+    $userSettingsController = new \App\Presentation\Controller\UserSettingsController($userSettingsService, $authService);
+    $paymentController = new \App\Presentation\Controller\PaymentController($config['stripe']['secret_key'] ?? 'sk_test_...');
 
     // Basic routing
     $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
@@ -178,15 +193,24 @@ try {
 
             // Authentication endpoints
             case $route === '/auth/login' && $requestMethod === 'POST':
+                if (!$rateLimitMiddleware->handleStrict()) {
+                    return;
+                }
                 $authController->login();
                 break;
 
             case $route === '/auth/refresh' && $requestMethod === 'POST':
+                if (!$rateLimitMiddleware->handle()) {
+                    return;
+                }
                 $authController->refreshToken();
                 break;
 
             // User registration (public)
             case $route === '/users' && $requestMethod === 'POST':
+                if (!$rateLimitMiddleware->handleStrict()) {
+                    return;
+                }
                 $userController->register();
                 break;
 
@@ -285,6 +309,50 @@ try {
                 $wishlistController->getWishlistCount();
                 break;
 
+            // User Settings endpoints
+            case $route === '/user/settings' && $requestMethod === 'GET':
+                $currentUser = $authMiddleware->handle();
+                if ($currentUser) {
+                    $userSettingsController->getSettings();
+                }
+                break;
+
+            case $route === '/user/settings' && $requestMethod === 'PUT':
+                $currentUser = $authMiddleware->handle();
+                if ($currentUser) {
+                    $userSettingsController->updateSettings();
+                }
+                break;
+
+            case $route === '/user/settings' && $requestMethod === 'DELETE':
+                $currentUser = $authMiddleware->handle();
+                if ($currentUser) {
+                    $userSettingsController->deleteSettings();
+                }
+                break;
+
+            // Payment endpoints
+            case $route === '/payments/create-intent' && $requestMethod === 'POST':
+                $currentUser = $authMiddleware->handle();
+                if ($currentUser) {
+                    $paymentController->createPaymentIntent();
+                }
+                break;
+
+            case $route === '/payments/confirm' && $requestMethod === 'POST':
+                $currentUser = $authMiddleware->handle();
+                if ($currentUser) {
+                    $paymentController->confirmPayment();
+                }
+                break;
+
+            case preg_match('/^\/payments\/([^\/]+)\/status$/', $route, $matches) && $requestMethod === 'GET':
+                $currentUser = $authMiddleware->handle();
+                if ($currentUser) {
+                    $paymentController->getPaymentStatus($matches[1]);
+                }
+                break;
+
             // Admin endpoints
             case $route === '/admin/users' && $requestMethod === 'GET':
                 $currentUser = $authMiddleware->handle('is_staff');
@@ -300,7 +368,8 @@ try {
                                 'last_name' => $user->getLastName(),
                                 'role' => $user->getRole(),
                                 'is_active' => $user->isActive(),
-                                'is_staff' => $user->getRole() === 'admin',
+                                'is_staff' => $user->isStaff(),
+                                'is_superuser' => $user->isSuperuser(),
                                 'email_verified' => $user->isEmailVerified(),
                                 'created_at' => $user->getCreatedAt()->format('Y-m-d\TH:i:s\Z')
                             ];
@@ -344,7 +413,8 @@ try {
                             'last_name' => $user->getLastName(),
                             'role' => $user->getRole(),
                             'is_active' => $user->isActive(),
-                            'is_staff' => $user->getRole() === 'admin',
+                            'is_staff' => $user->isStaff(),
+                            'is_superuser' => $user->isSuperuser(),
                             'email_verified' => $user->isEmailVerified(),
                             'created_at' => $user->getCreatedAt()->format('Y-m-d\TH:i:s\Z'),
                             'updated_at' => $user->getUpdatedAt()->format('Y-m-d\TH:i:s\Z')
@@ -401,6 +471,10 @@ try {
                 $orderController->updatePaymentStatus($matches[1]);
                 break;
 
+            case preg_match('/^\/orders\/([^\/]+)$/', $route, $matches) && $requestMethod === 'PUT':
+                $orderController->updateOrder($matches[1]);
+                break;
+
             // Public product endpoints
             case $route === '/products' && $requestMethod === 'GET':
                 $productController->index();
@@ -422,12 +496,20 @@ try {
                 $productController->show($matches[1]);
                 break;
 
+            case preg_match('/^\/products\/([^\/]+)\/related$/', $route, $matches) && $requestMethod === 'GET':
+                $productController->related($matches[1]);
+                break;
+
             case $route === '/categories' && $requestMethod === 'GET':
                 $productController->categories();
                 break;
 
             // Order endpoints
             case $route === '/orders' && $requestMethod === 'GET':
+                $orderController->getAllOrders();
+                break;
+
+            case $route === '/orders/my' && $requestMethod === 'GET':
                 $orderController->getMyOrders();
                 break;
 
@@ -488,6 +570,89 @@ try {
                 if ($currentUser) {
                     $imageUploadController->deleteImage();
                 }
+                break;
+
+            // Offer endpoints
+            case $route === '/offers' && $requestMethod === 'GET':
+                $offerController->index();
+                break;
+
+            case $route === '/offers' && $requestMethod === 'POST':
+                $currentUser = $authMiddleware->handle('is_staff');
+                if ($currentUser) {
+                    $offerController->store();
+                }
+                break;
+
+            case preg_match('/^\/offers\/([^\/]+)$/', $route, $matches) && $requestMethod === 'PUT':
+                $currentUser = $authMiddleware->handle('is_staff');
+                if ($currentUser) {
+                    $offerController->update($matches[1]);
+                }
+                break;
+
+            case preg_match('/^\/offers\/([^\/]+)\/toggle-status$/', $route, $matches) && $requestMethod === 'PATCH':
+                $currentUser = $authMiddleware->handle('is_staff');
+                if ($currentUser) {
+                    $offerController->toggleStatus($matches[1]);
+                }
+                break;
+
+            case $route === '/admin/offers' && $requestMethod === 'GET':
+                $offerController->index();
+                break;
+
+            case $route === '/admin/offers' && $requestMethod === 'POST':
+                $offerController->store();
+                break;
+
+            case preg_match('/^\/admin\/offers\/([^\/]+)$/', $route, $matches) && $requestMethod === 'GET':
+                $offerController->show($matches[1]);
+                break;
+
+            case preg_match('/^\/admin\/offers\/([^\/]+)$/', $route, $matches) && $requestMethod === 'PUT':
+                $offerController->update($matches[1]);
+                break;
+
+            case preg_match('/^\/admin\/offers\/([^\/]+)$/', $route, $matches) && $requestMethod === 'DELETE':
+                $offerController->delete($matches[1]);
+                break;
+
+            case preg_match('/^\/admin\/offers\/([^\/]+)\/activate$/', $route, $matches) && $requestMethod === 'PUT':
+                $offerController->activate($matches[1]);
+                break;
+
+            case preg_match('/^\/admin\/offers\/([^\/]+)\/deactivate$/', $route, $matches) && $requestMethod === 'PUT':
+                $offerController->deactivate($matches[1]);
+                break;
+
+            case $route === '/admin/offers/statistics' && $requestMethod === 'GET':
+                $offerController->statistics();
+                break;
+
+            // Coupon endpoints
+            case $route === '/admin/coupons' && $requestMethod === 'GET':
+                $couponController->index();
+                break;
+
+            case $route === '/admin/coupons' && $requestMethod === 'POST':
+                $couponController->store();
+                break;
+
+            case preg_match('/^\/admin\/coupons\/([^\/]+)$/', $route, $matches) && $requestMethod === 'GET':
+                $couponController->show($matches[1]);
+                break;
+
+            case preg_match('/^\/admin\/coupons\/([^\/]+)$/', $route, $matches) && $requestMethod === 'PUT':
+                $couponController->update($matches[1]);
+                break;
+
+            case preg_match('/^\/admin\/coupons\/([^\/]+)$/', $route, $matches) && $requestMethod === 'DELETE':
+                $couponController->delete($matches[1]);
+                break;
+
+            case $route === '/coupons/validate' && $requestMethod === 'POST':
+                $couponController->validate();
                 break;
 
             default:

@@ -65,11 +65,11 @@ import {
   Timeline as TimelineIcon,
   AttachMoney as MoneyIcon,
   LocalFireDepartment as FireIcon,
-  Flash as FlashIcon,
+  FlashOn as FlashIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../store';
+import { RootState, AppDispatch } from '../store';
 import {
   removeFromCart,
   updateQuantity,
@@ -77,11 +77,20 @@ import {
   selectCartItems,
   selectCartTotal,
   selectCartCount,
+  fetchCart,
 } from '../store/slices/cartSlice';
+import {
+  calculateCartTotals,
+  validatePromoCode,
+  formatPrice,
+  SHIPPING_OPTIONS,
+  getShippingOptionById,
+  type CartCalculations,
+} from '../lib/calculations';
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const cartItems = useSelector(selectCartItems);
   const cartTotal = useSelector(selectCartTotal);
   const cartCount = useSelector(selectCartCount);
@@ -91,6 +100,14 @@ const CartPage: React.FC = () => {
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoError, setPromoError] = useState('');
+  const [shippingMethod, setShippingMethod] = useState('standard');
+  const [calculations, setCalculations] = useState<CartCalculations>({
+    subtotal: 0,
+    discount: 0,
+    shipping: 0,
+    tax: 0,
+    total: 0,
+  });
   const [savedItems, setSavedItems] = useState<any[]>([]);
   const [clearCartDialogOpen, setClearCartDialogOpen] = useState(false);
   const [showSavedItems, setShowSavedItems] = useState(true);
@@ -157,15 +174,31 @@ const CartPage: React.FC = () => {
     'Order Review',
   ];
 
+  // Load cart when component mounts
+  useEffect(() => {
+    dispatch(fetchCart());
+  }, [dispatch]);
+
+  // Recalculate totals when cart or promo changes
+  useEffect(() => {
+    const newCalculations = calculateCartTotals(
+      cartTotal,
+      promoApplied ? promoCode : undefined,
+      shippingMethod
+    );
+    setCalculations(newCalculations);
+  }, [cartTotal, promoCode, promoApplied, shippingMethod]);
+
   const handleQuantityChange = (id: string, quantity: number) => {
     if (quantity <= 0) {
       dispatch(removeFromCart(id));
     } else {
-      dispatch(updateQuantity({ id, quantity }));
+      dispatch(updateQuantity({ itemId: id, quantity }));
     }
   };
 
-  const handleRemoveItem = (id: string) => {
+  const handleRemoveItem = async (id: string) => {
+    await
     dispatch(removeFromCart(id));
   };
 
@@ -182,25 +215,20 @@ const CartPage: React.FC = () => {
   const handleApplyPromo = async () => {
     setLoading(true);
     setPromoError('');
-    
+
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const validation = validatePromoCode(promoCode, cartTotal);
       
-      const validPromoCodes = {
-        'SAVE10': 10,
-        'WELCOME20': 20,
-        'STUDENT15': 15,
-        'FIRST50': 50,
-        'FLASH25': 25,
-      };
-      
-      const discount = validPromoCodes[promoCode.toUpperCase() as keyof typeof validPromoCodes];
-      
-      if (discount) {
-        setPromoDiscount(discount);
-        setPromoApplied(true);
+      if (!validation.valid) {
+        setPromoError(validation.error || 'Invalid promo code');
+        setPromoApplied(false);
+        setPromoDiscount(0);
       } else {
-        setPromoError('Invalid promo code');
+        setPromoApplied(true);
+        setPromoDiscount(validation.discount || 0);
+        setPromoError('');
       }
     } catch (error) {
       setPromoError('Failed to apply promo code');
@@ -221,30 +249,23 @@ const CartPage: React.FC = () => {
     setClearCartDialogOpen(false);
   };
 
-  const calculateSubtotal = () => cartTotal;
-  const calculateDiscount = () => (cartTotal * promoDiscount) / 100;
-  const calculateShipping = () => cartTotal >= 50 ? 0 : 5.99;
-  const calculateTax = () => (cartTotal - calculateDiscount()) * 0.08; // 8% tax
-  const calculateTotal = () => 
-    cartTotal - calculateDiscount() + calculateShipping() + calculateTax();
-
-  const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
-  };
+  // Use unified calculations
+  const getSubtotal = () => calculations.subtotal;
+  const getDiscount = () => calculations.discount;
+  const getShipping = () => calculations.shipping;
+  const getTax = () => calculations.tax;
+  const getTotal = () => calculations.total;
 
   const getShippingProgress = () => {
-    if (cartTotal >= 50) {
-      return { progress: 100, text: 'Free Shipping Unlocked! 🎉', color: 'success' };
+    // Since we now use fixed shipping options, return info about current shipping cost
+    const currentShipping = getShippingOptionById(shippingMethod);
+    if (currentShipping && currentShipping.cost === 0) {
+      return { progress: 100, text: 'Free Shipping Selected! 🎉', color: 'success' };
     } else {
-      const needed = 50 - cartTotal;
-      const progress = (cartTotal / 50) * 100;
-      return { 
-        progress, 
-        text: `Add ${formatPrice(needed)} more for free shipping`, 
-        color: 'warning' 
+      return {
+        progress: 100,
+        text: `Shipping: ${currentShipping?.label || 'Standard'}`,
+        color: 'info'
       };
     }
   };
@@ -284,10 +305,10 @@ const CartPage: React.FC = () => {
             Your cart is empty
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 400, mx: 'auto' }}>
-            Looks like you haven't added anything to your cart yet. 
+            Looks like you haven't added anything to your cart yet.
             Start shopping to fill it up with amazing products!
           </Typography>
-          
+
           <Stack direction="row" spacing={2} justifyContent="center">
             <Button
               variant="contained"
@@ -330,7 +351,7 @@ const CartPage: React.FC = () => {
                   label={category}
                   onClick={() => navigate('/products')}
                   variant="outlined"
-                  sx={{ 
+                  sx={{
                     borderRadius: 3,
                     '&:hover': {
                       backgroundColor: 'primary.main',
@@ -380,7 +401,7 @@ const CartPage: React.FC = () => {
         <Stepper activeStep={0} alternativeLabel>
           {steps.map((label, index) => (
             <Step key={label}>
-              <StepLabel 
+              <StepLabel
                 sx={{
                   '& .MuiStepLabel-label': {
                     fontWeight: index === 0 ? 'bold' : 'normal',
@@ -412,19 +433,19 @@ const CartPage: React.FC = () => {
             />
           )}
         </Box>
-        
-        <Box sx={{ 
-          width: '100%', 
-          height: 8, 
-          backgroundColor: 'rgba(0,0,0,0.1)', 
+
+        <Box sx={{
+          width: '100%',
+          height: 8,
+          backgroundColor: 'rgba(0,0,0,0.1)',
           borderRadius: 4,
           overflow: 'hidden',
         }}>
-          <Box sx={{ 
+          <Box sx={{
             width: `${getShippingProgress().progress}%`,
             height: '100%',
-            background: cartTotal >= 50 
-              ? 'linear-gradient(90deg, #4caf50, #8bc34a)' 
+            background: cartTotal >= 50
+              ? 'linear-gradient(90deg, #4caf50, #8bc34a)'
               : 'linear-gradient(90deg, #ff9800, #ffc107)',
             borderRadius: 4,
             transition: 'width 0.3s ease',
@@ -437,8 +458,8 @@ const CartPage: React.FC = () => {
         <Grid item xs={12} lg={8}>
           <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
             {/* Cart Header */}
-            <Box sx={{ 
-              p: 3, 
+            <Box sx={{
+              p: 3,
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
             }}>
@@ -463,7 +484,7 @@ const CartPage: React.FC = () => {
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Clear cart">
-                    <IconButton 
+                    <IconButton
                       sx={{ color: 'white' }}
                       onClick={() => setClearCartDialogOpen(true)}
                     >
@@ -477,10 +498,10 @@ const CartPage: React.FC = () => {
             {/* Cart Items List */}
             <Box sx={{ p: 3 }}>
               {cartItems.map((item, index) => (
-                <Card 
-                  key={item.id} 
-                  sx={{ 
-                    mb: 3, 
+                <Card
+                  key={item.id}
+                  sx={{
+                    mb: 3,
                     borderRadius: 3,
                     border: '1px solid rgba(0,0,0,0.1)',
                     transition: 'all 0.3s ease',
@@ -496,17 +517,17 @@ const CartPage: React.FC = () => {
                       <Grid item xs={12} sm={3}>
                         <Box sx={{ position: 'relative' }}>
                           <Avatar
-                            src={item.images?.[0] || '/placeholder-product.jpg'}
+                            src={item.image_url || '/placeholder-product.jpg'}
                             variant="rounded"
-                            sx={{ 
-                              width: '100%', 
+                            sx={{
+                              width: '100%',
                               height: 120,
                               border: '2px solid rgba(102, 126, 234, 0.2)',
                             }}
                           />
-                          {item.originalPrice && item.originalPrice > item.price && (
+                          {item.current_price !== item.cart_price && (
                             <Chip
-                              label={`${Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}% OFF`}
+                              label={`${Math.round(((item.current_price - item.cart_price) / item.current_price) * 100)}% OFF`}
                               size="small"
                               color="secondary"
                               sx={{
@@ -526,23 +547,23 @@ const CartPage: React.FC = () => {
                           {item.name}
                         </Typography>
                         <Typography variant="body2" color="text.secondary" gutterBottom>
-                          SKU: {item.sku || 'N/A'}
+                          SKU: {item.slug || 'N/A'}
                         </Typography>
-                        
+
                         {/* Price */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                           <Typography variant="h6" fontWeight="bold" color="primary">
-                            {formatPrice(item.price)}
+                            {formatPrice(item.cart_price)}
                           </Typography>
-                          {item.originalPrice && item.originalPrice > item.price && (
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
+                          {item.current_price !== item.cart_price && (
+                            <Typography
+                              variant="body2"
+                              sx={{
                                 textDecoration: 'line-through',
                                 color: 'text.secondary',
                               }}
                             >
-                              {formatPrice(item.originalPrice)}
+                              {formatPrice(item.current_price)}
                             </Typography>
                           )}
                         </Box>
@@ -582,12 +603,12 @@ const CartPage: React.FC = () => {
                               const value = parseInt(e.target.value) || 1;
                               handleQuantityChange(item.id, value);
                             }}
-                            inputProps={{ 
-                              min: 1, 
-                              style: { textAlign: 'center', width: '60px' } 
+                            inputProps={{
+                              min: 1,
+                              style: { textAlign: 'center', width: '60px' }
                             }}
                             type="number"
-                            sx={{ 
+                            sx={{
                               '& .MuiOutlinedInput-root': {
                                 borderRadius: 1,
                               }
@@ -647,10 +668,10 @@ const CartPage: React.FC = () => {
                           Total
                         </Typography>
                         <Typography variant="h5" fontWeight="bold" color="primary">
-                          {formatPrice(item.price * item.quantity)}
+                          {formatPrice(item.total)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {formatPrice(item.price)} × {item.quantity}
+                          {formatPrice(item.cart_price)} × {item.quantity}
                         </Typography>
                       </Grid>
                     </Grid>
@@ -663,12 +684,12 @@ const CartPage: React.FC = () => {
           {/* Saved Items */}
           {savedItems.length > 0 && (
             <Paper sx={{ mt: 4, borderRadius: 3, overflow: 'hidden' }}>
-              <Box sx={{ 
-                p: 3, 
+              <Box sx={{
+                p: 3,
                 background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
                 cursor: 'pointer',
               }}
-              onClick={() => setShowSavedItems(!showSavedItems)}
+                onClick={() => setShowSavedItems(!showSavedItems)}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -707,8 +728,8 @@ const CartPage: React.FC = () => {
                             </Typography>
                           </CardContent>
                           <CardActions>
-                            <Button 
-                              size="small" 
+                            <Button
+                              size="small"
                               variant="contained"
                               onClick={() => handleMoveToCart(item)}
                               sx={{ borderRadius: 2 }}
@@ -730,12 +751,12 @@ const CartPage: React.FC = () => {
 
           {/* Recommendations */}
           <Paper sx={{ mt: 4, borderRadius: 3, overflow: 'hidden' }}>
-            <Box sx={{ 
-              p: 3, 
+            <Box sx={{
+              p: 3,
               background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
               cursor: 'pointer',
             }}
-            onClick={() => setShowRecommendations(!showRecommendations)}
+              onClick={() => setShowRecommendations(!showRecommendations)}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -758,7 +779,7 @@ const CartPage: React.FC = () => {
                 <Grid container spacing={3}>
                   {recommendations.map((product) => (
                     <Grid item xs={12} sm={6} md={4} key={product.id}>
-                      <Card sx={{ 
+                      <Card sx={{
                         borderRadius: 3,
                         transition: 'all 0.3s ease',
                         '&:hover': {
@@ -806,9 +827,9 @@ const CartPage: React.FC = () => {
                             <Typography variant="h6" fontWeight="bold" color="primary">
                               {formatPrice(product.price)}
                             </Typography>
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
+                            <Typography
+                              variant="body2"
+                              sx={{
                                 textDecoration: 'line-through',
                                 color: 'text.secondary',
                               }}
@@ -834,9 +855,9 @@ const CartPage: React.FC = () => {
                           </Box>
                         </CardContent>
                         <CardActions sx={{ p: 2 }}>
-                          <Button 
-                            variant="contained" 
-                            fullWidth 
+                          <Button
+                            variant="contained"
+                            fullWidth
                             disabled={!product.inStock}
                             sx={{ borderRadius: 2 }}
                           >
@@ -932,37 +953,37 @@ const CartPage: React.FC = () => {
                 <ListItem sx={{ px: 0, py: 1 }}>
                   <ListItemText primary="Subtotal:" />
                   <Typography variant="body1" fontWeight="bold">
-                    {formatPrice(calculateSubtotal())}
+                                          {formatPrice(getSubtotal())}
                   </Typography>
                 </ListItem>
 
                 {promoApplied && (
                   <ListItem sx={{ px: 0, py: 1 }}>
-                    <ListItemText 
+                    <ListItemText
                       primary={`Discount (${promoDiscount}%):`}
                       sx={{ color: 'success.main' }}
                     />
                     <Typography variant="body1" fontWeight="bold" color="success.main">
-                      -{formatPrice(calculateDiscount())}
+                                              -{formatPrice(getDiscount())}
                     </Typography>
                   </ListItem>
                 )}
 
                 <ListItem sx={{ px: 0, py: 1 }}>
                   <ListItemText primary="Shipping:" />
-                  <Typography 
-                    variant="body1" 
+                  <Typography
+                    variant="body1"
                     fontWeight="bold"
-                    color={calculateShipping() === 0 ? 'success.main' : 'inherit'}
-                  >
-                    {calculateShipping() === 0 ? 'FREE' : formatPrice(calculateShipping())}
+                                          color={getShipping() === 0 ? 'success.main' : 'inherit'}
+                    >
+                      {getShipping() === 0 ? 'FREE' : formatPrice(getShipping())}
                   </Typography>
                 </ListItem>
 
                 <ListItem sx={{ px: 0, py: 1 }}>
                   <ListItemText primary="Tax:" />
                   <Typography variant="body1" fontWeight="bold">
-                    {formatPrice(calculateTax())}
+                                          {formatPrice(getTax())}
                   </Typography>
                 </ListItem>
               </List>
@@ -974,7 +995,7 @@ const CartPage: React.FC = () => {
                   Total:
                 </Typography>
                 <Typography variant="h4" fontWeight="bold" color="primary">
-                  {formatPrice(calculateTotal())}
+                                          {formatPrice(getTotal())}
                 </Typography>
               </Box>
 
@@ -1011,7 +1032,7 @@ const CartPage: React.FC = () => {
                 >
                   Continue Shopping
                 </Button>
-                
+
                 <Button
                   variant="text"
                   fullWidth
@@ -1024,9 +1045,9 @@ const CartPage: React.FC = () => {
               </Stack>
 
               {/* Security Badges */}
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
                 gap: 1,
                 mt: 3,
@@ -1125,15 +1146,15 @@ const CartPage: React.FC = () => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button 
+          <Button
             onClick={() => setClearCartDialogOpen(false)}
             sx={{ borderRadius: 2 }}
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleClearCart}
-            variant="contained" 
+            variant="contained"
             color="error"
             sx={{ borderRadius: 2 }}
           >
