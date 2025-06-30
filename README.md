@@ -32,6 +32,39 @@
 
 ---
 
+## 🔐 Umgebungsvariablen Setup
+
+### ⚡ **Automatische Einrichtung:**
+
+```bash
+# Führen Sie das Setup-Skript aus
+./setup-env.sh
+```
+
+### 📝 **Manuelle Einrichtung:**
+
+1. **Kopieren Sie die Beispiel-Dateien:**
+
+```bash
+cp env.example .env
+cp frontend/env.example frontend/.env
+```
+
+2. **Bearbeiten Sie die .env Dateien mit Ihren Werten**
+3. **Starten Sie die Anwendung:**
+
+```bash
+docker-compose up -d
+```
+
+### 📖 **Detaillierte Anleitung:**
+
+- 🔐 **[Umgebungsvariablen Setup](ENVIRONMENT_SETUP.md)** - Vollständige Dokumentation
+- 🛡️ **Sicherheitsrichtlinien** - Best Practices für Produktionsumgebungen
+- 🚀 **Deployment-Guides** - Railway, Vercel, DigitalOcean
+
+---
+
 ## 🎯 Was Sie erhalten
 
 <table>

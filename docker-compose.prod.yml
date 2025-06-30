@@ -34,7 +34,23 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-postgres}
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       - JWT_EXPIRATION=${JWT_EXPIRATION:-3600}
+      - JWT_ISSUER=${JWT_ISSUER:-amazon-clone-api}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-amazon-clone-frontend}
       - APP_ENV=production
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_NAME=${APP_NAME:-Online Shop}
+      - APP_URL=${APP_URL:-https://your-domain.com}
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_SECURE=${SMTP_SECURE:-tls}
+      - FROM_EMAIL=${FROM_EMAIL:-noreply@your-domain.com}
+      - FROM_NAME=${FROM_NAME:-Online Shop}
+      - USE_SMTP=${USE_SMTP:-true}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_your_stripe_secret_key_here}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-pk_test_your_stripe_publishable_key_here}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
     restart: unless-stopped
 
   nginx:
@@ -61,6 +77,8 @@ services:
       - app-network
     environment:
       - VITE_API_URL=${API_URL:-http://localhost/api}
+      - VITE_STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-pk_test_your_stripe_publishable_key_here}
+      - VITE_DEV_MODE=false
     restart: unless-stopped
 
 volumes:

@@ -20,6 +20,36 @@ services:
         value: your-super-secure-256-bit-secret
       - key: JWT_EXPIRATION
         value: "3600"
+      - key: JWT_ISSUER
+        value: "amazon-clone-api"
+      - key: JWT_AUDIENCE
+        value: "amazon-clone-frontend"
+      - key: APP_NAME
+        value: "Online Shop"
+      - key: APP_URL
+        value: "https://your-domain.com"
+      - key: SMTP_HOST
+        value: "smtp.gmail.com"
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        value: "your-email@gmail.com"
+      - key: SMTP_PASSWORD
+        value: "your-app-password"
+      - key: SMTP_SECURE
+        value: "tls"
+      - key: FROM_EMAIL
+        value: "noreply@your-domain.com"
+      - key: FROM_NAME
+        value: "Online Shop"
+      - key: USE_SMTP
+        value: "true"
+      - key: STRIPE_SECRET_KEY
+        value: "sk_test_your_stripe_secret_key_here"
+      - key: STRIPE_PUBLISHABLE_KEY
+        value: "pk_test_your_stripe_publishable_key_here"
+      - key: STRIPE_WEBHOOK_SECRET
+        value: "whsec_your_webhook_secret_here"
 
   - name: frontend
     source_dir: /frontend
@@ -35,6 +65,12 @@ services:
     envs:
       - key: NODE_ENV
         value: production
+      - key: VITE_API_URL
+        value: "https://your-domain.com/api"
+      - key: VITE_STRIPE_PUBLISHABLE_KEY
+        value: "pk_test_your_stripe_publishable_key_here"
+      - key: VITE_DEV_MODE
+        value: "false"
 
 databases:
   - name: db
