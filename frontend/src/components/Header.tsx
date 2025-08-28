@@ -1,85 +1,84 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  Button, 
-  Box, 
-  TextField,
-  InputAdornment,
-  IconButton,
-  Menu,
-  MenuItem,
-  Container,
-  useMediaQuery,
-  useTheme,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Badge,
-  Snackbar,
-  Alert,
-  Avatar,
-  Divider,
-  Paper,
-  ListItemButton,
-  Chip,
-  LinearProgress,
-  Card,
-  CardContent,
-  Popper,
-  ClickAwayListener,
-  Grow,
-  MenuList,
-  Stack,
-  Tooltip,
-  Link as MuiLink,
-} from '@mui/material';
-import {
-  Search as SearchIcon,
-  ShoppingCart as ShoppingCartIcon,
-  AccountCircle as AccountIcon,
-  Menu as MenuIcon,
-  Home as HomeIcon,
-  Storefront as ProductsIcon,
-  Favorite as FavoriteIcon,
-  FavoriteBorder as FavoriteBorderIcon,
-  Person as PersonIcon,
-  Settings as SettingsIcon,
-  Logout as LogoutIcon,
-  NotificationsNone as NotificationsIcon,
-  LocalOffer as OffersIcon,
-  Help as HelpIcon,
-  Close as CloseIcon,
-  TrendingUp as TrendingIcon,
-  Category as CategoryIcon,
-  KeyboardArrowDown as ArrowDownIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  LocationOn as LocationIcon,
-  Schedule as ScheduleIcon,
-  Security as SecurityIcon,
-  Language as LanguageIcon,
-  Brightness6 as ThemeIcon,
-  History as HistoryIcon,
-  Login as LoginIcon,
-  PersonAdd as PersonAddIcon,
-  // Category icons
-  Computer as ElectronicsIcon,
-  Checkroom as ClothingIcon,
-  MenuBook as BooksIcon,
-  HomeOutlined as HomeGardenIcon,
-  SportsBasketball as SportsIcon,
-  Toys as ToysIcon,
-  Build as ToolsIcon,
-  Kitchen as KitchenIcon,
-  FitnessCenter as FitnessIcon,
-  Pets as PetsIcon,
-  DirectionsCar as AutomotiveIcon,
-  Palette as ArtIcon,
-} from '@mui/icons-material';
+// Optimized MUI imports for better tree-shaking
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Container from '@mui/material/Container';
+import { useTheme } from '@mui/material/styles';
+import { useMediaQuery } from '@mui/material';
+import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Badge from '@mui/material/Badge';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
+import Avatar from '@mui/material/Avatar';
+import Divider from '@mui/material/Divider';
+import Paper from '@mui/material/Paper';
+import ListItemButton from '@mui/material/ListItemButton';
+import Chip from '@mui/material/Chip';
+import LinearProgress from '@mui/material/LinearProgress';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Popper from '@mui/material/Popper';
+import ClickAwayListener from '@mui/material/ClickAwayListener';
+import Grow from '@mui/material/Grow';
+import MenuList from '@mui/material/MenuList';
+import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
+import MuiLink from '@mui/material/Link';
+
+// Optimized icon imports
+import SearchIcon from '@mui/icons-material/Search';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import MenuIcon from '@mui/icons-material/Menu';
+import HomeIcon from '@mui/icons-material/Home';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import PersonIcon from '@mui/icons-material/Person';
+import SettingsIcon from '@mui/icons-material/Settings';
+import LogoutIcon from '@mui/icons-material/Logout';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import HelpIcon from '@mui/icons-material/Help';
+import CloseIcon from '@mui/icons-material/Close';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import CategoryIcon from '@mui/icons-material/Category';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import PhoneIcon from '@mui/icons-material/Phone';
+import EmailIcon from '@mui/icons-material/Email';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import SecurityIcon from '@mui/icons-material/Security';
+import LanguageIcon from '@mui/icons-material/Language';
+import Brightness6Icon from '@mui/icons-material/Brightness6';
+import HistoryIcon from '@mui/icons-material/History';
+import LoginIcon from '@mui/icons-material/Login';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+// Category icons
+import ComputerIcon from '@mui/icons-material/Computer';
+import CheckroomIcon from '@mui/icons-material/Checkroom';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
+import ToysIcon from '@mui/icons-material/Toys';
+import BuildIcon from '@mui/icons-material/Build';
+import KitchenIcon from '@mui/icons-material/Kitchen';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import PetsIcon from '@mui/icons-material/Pets';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import PaletteIcon from '@mui/icons-material/Palette';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout, selectUser, selectIsAuthenticated } from '../store/slices/authSlice';
@@ -233,24 +232,24 @@ const Header: React.FC = () => {
       case 'electronics':
       case 'computers':
       case 'technology':
-        return <ElectronicsIcon {...iconProps} />;
+        return <ComputerIcon {...iconProps} />;
       case 'clothing':
       case 'fashion':
       case 'apparel':
-        return <ClothingIcon {...iconProps} />;
+        return <CheckroomIcon {...iconProps} />;
       case 'books':
       case 'literature':
       case 'reading':
-        return <BooksIcon {...iconProps} />;
+        return <MenuBookIcon {...iconProps} />;
       case 'home-garden':
       case 'home':
       case 'garden':
       case 'furniture':
-        return <HomeGardenIcon {...iconProps} />;
+        return <HomeOutlinedIcon {...iconProps} />;
       case 'sports':
       case 'fitness':
       case 'outdoor':
-        return <SportsIcon {...iconProps} />;
+        return <SportsBasketballIcon {...iconProps} />;
       case 'toys':
       case 'games':
       case 'kids':
@@ -258,7 +257,7 @@ const Header: React.FC = () => {
       case 'tools':
       case 'hardware':
       case 'diy':
-        return <ToolsIcon {...iconProps} />;
+        return <BuildIcon {...iconProps} />;
       case 'kitchen':
       case 'appliances':
       case 'cooking':
@@ -266,18 +265,18 @@ const Header: React.FC = () => {
       case 'health':
       case 'beauty':
       case 'wellness':
-        return <FitnessIcon {...iconProps} />;
+        return <FitnessCenterIcon {...iconProps} />;
       case 'pets':
       case 'animals':
         return <PetsIcon {...iconProps} />;
       case 'automotive':
       case 'cars':
       case 'vehicles':
-        return <AutomotiveIcon {...iconProps} />;
+        return <DirectionsCarIcon {...iconProps} />;
       case 'art':
       case 'crafts':
       case 'creative':
-        return <ArtIcon {...iconProps} />;
+        return <PaletteIcon {...iconProps} />;
       default:
         return <CategoryIcon {...iconProps} />;
     }
@@ -285,9 +284,9 @@ const Header: React.FC = () => {
 
   const navigationItems = [
     { label: 'Home', path: '/', icon: <HomeIcon /> },
-    { label: 'Products', path: '/products', icon: <ProductsIcon /> },
+    { label: 'Products', path: '/products', icon: <StorefrontIcon /> },
     { label: 'Categories', onClick: (e: any) => setCategoriesMenuAnchor(e.currentTarget), icon: <CategoryIcon /> },
-    { label: 'Offers', path: '/offers', icon: <OffersIcon /> },
+    { label: 'Offers', path: '/offers', icon: <LocalOfferIcon /> },
   ];
 
   const userMenuItems = [
@@ -424,7 +423,7 @@ const Header: React.FC = () => {
                     to={item.path}
                     onClick={item.onClick}
                     startIcon={item.icon}
-                    endIcon={item.label === 'Categories' ? <ArrowDownIcon /> : undefined}
+                    endIcon={item.label === 'Categories' ? <KeyboardArrowDownIcon /> : undefined}
                     sx={{
                       fontWeight: 'bold',
                       px: 2,
@@ -531,7 +530,7 @@ const Header: React.FC = () => {
                           onClick={() => handleSearchSuggestionClick(product)}
                         >
                           <ListItemIcon>
-                            <TrendingIcon fontSize="small" />
+                            <TrendingUpIcon fontSize="small" />
                           </ListItemIcon>
                           <ListItemText
                             primary={product.name}
@@ -552,7 +551,7 @@ const Header: React.FC = () => {
                 <Tooltip title="Notifications">
                   <IconButton color="inherit">
                     <Badge badgeContent={notifications.length} color="error">
-                      <NotificationsIcon />
+                      <NotificationsNoneIcon />
                     </Badge>
                   </IconButton>
                 </Tooltip>
@@ -600,7 +599,7 @@ const Header: React.FC = () => {
                         {user?.first_name?.[0]?.toUpperCase() || 'U'}
                       </Avatar>
                     }
-                    endIcon={<ArrowDownIcon />}
+                    endIcon={<KeyboardArrowDownIcon />}
                     sx={{
                       fontWeight: 'bold',
                       px: 2,
@@ -630,7 +629,7 @@ const Header: React.FC = () => {
                     <Button
                       color="inherit"
                       onClick={(e) => setGuestMenuAnchor(e.currentTarget)}
-                      startIcon={<AccountIcon />}
+                      startIcon={<AccountCircleIcon />}
                       sx={{
                         fontWeight: 'bold',
                         px: 2,
