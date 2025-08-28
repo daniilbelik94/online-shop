@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -11,39 +11,59 @@ import { store } from './store';
 import { ToastProvider } from './components/ToastNotifications';
 import { registerServiceWorker } from './utils/pwa';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
-// Components
-import Header from './components/Header';
-import Footer from './components/Footer';
 import NotificationProvider from './components/NotificationProvider';
-import HomePage from './pages/HomePage';
-import ProductsPage from './pages/ProductsPage';
-import ProductDetailPage from './pages/ProductDetailPage';
-import OffersPage from './pages/OffersPage';
-import CartPage from './pages/CartPage';
-import CheckoutPage from './pages/CheckoutPage';
-import AuthPage from './pages/AuthPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import ProfilePage from './pages/ProfilePage';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import TermsOfServicePage from './pages/TermsOfServicePage';
-import RefundPolicyPage from './pages/RefundPolicyPage';
-import ShippingPolicyPage from './pages/ShippingPolicyPage';
-import CookiePolicyPage from './pages/CookiePolicyPage';
-import AboutUsPage from './pages/AboutUsPage';
-import ContactPage from './pages/ContactPage';
-import HelpCenterPage from './pages/HelpCenterPage';
-import AdminRoute from './components/AdminRoute';
-import AdminDashboard from './features/admin/pages/AdminDashboard';
-import AnalyticsPage from './features/admin/pages/AnalyticsPage';
-import UserListPage from './features/admin/pages/UserListPage';
-import ProductListPage from './features/admin/pages/ProductListPage';
-import ProductManagePage from './features/admin/pages/ProductManagePage';
-import CategoryManagePage from './features/admin/pages/CategoryManagePage';
-import OrderListPage from './features/admin/pages/OrderListPage';
-import OfferManagePage from './features/admin/pages/OfferManagePage';
-import CouponManagePage from './features/admin/pages/CouponManagePage';
-import SettingsPage from './features/admin/pages/SettingsPage';
+import PerformanceMonitor from './components/PerformanceMonitor';
+
+// Lazy load all page components for better performance
+const HomePage = lazy(() => import('./pages/HomePage'));
+const ProductsPage = lazy(() => import('./pages/ProductsPage'));
+const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage'));
+const OffersPage = lazy(() => import('./pages/OffersPage'));
+const CartPage = lazy(() => import('./pages/CartPage'));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
+const RefundPolicyPage = lazy(() => import('./pages/RefundPolicyPage'));
+const ShippingPolicyPage = lazy(() => import('./pages/ShippingPolicyPage'));
+const CookiePolicyPage = lazy(() => import('./pages/CookiePolicyPage'));
+const AboutUsPage = lazy(() => import('./pages/AboutUsPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const HelpCenterPage = lazy(() => import('./pages/HelpCenterPage'));
+
+// Lazy load admin pages
+const AdminRoute = lazy(() => import('./components/AdminRoute'));
+const AdminDashboard = lazy(() => import('./features/admin/pages/AdminDashboard'));
+const AnalyticsPage = lazy(() => import('./features/admin/pages/AnalyticsPage'));
+const UserListPage = lazy(() => import('./features/admin/pages/UserListPage'));
+const ProductListPage = lazy(() => import('./features/admin/pages/ProductListPage'));
+const ProductManagePage = lazy(() => import('./features/admin/pages/ProductManagePage'));
+const CategoryManagePage = lazy(() => import('./features/admin/pages/CategoryManagePage'));
+const OrderListPage = lazy(() => import('./features/admin/pages/OrderListPage'));
+const OfferManagePage = lazy(() => import('./features/admin/pages/OfferManagePage'));
+const CouponManagePage = lazy(() => import('./features/admin/pages/CouponManagePage'));
+const SettingsPage = lazy(() => import('./features/admin/pages/SettingsPage'));
+
+// Lazy load layout components
+const Header = lazy(() => import('./components/Header'));
+const Footer = lazy(() => import('./components/Footer'));
+
+// Loading component for Suspense fallback
+const PageLoading = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '200px',
+    fontSize: '18px',
+    color: '#666'
+  }}>
+    Loading...
+  </div>
+);
 
 // Create a client
 const queryClient = new QueryClient({
@@ -95,89 +115,186 @@ function App() {
                   <Routes>
                     {/* Admin Routes - No Header/Footer */}
                     <Route path="/admin" element={
-                      <AdminRoute>
-                        <AdminDashboard />
-                      </AdminRoute>
+                      <Suspense fallback={<PageLoading />}>
+                        <AdminRoute>
+                          <AdminDashboard />
+                        </AdminRoute>
+                      </Suspense>
                     } />
                     <Route path="/admin/analytics" element={
-                      <AdminRoute>
-                        <AnalyticsPage />
-                      </AdminRoute>
+                      <Suspense fallback={<PageLoading />}>
+                        <AdminRoute>
+                          <AnalyticsPage />
+                        </AdminRoute>
+                      </Suspense>
                     } />
                     <Route path="/admin/users" element={
-                      <AdminRoute>
-                        <UserListPage />
-                      </AdminRoute>
+                      <Suspense fallback={<PageLoading />}>
+                        <AdminRoute>
+                          <UserListPage />
+                        </AdminRoute>
+                      </Suspense>
                     } />
                     <Route path="/admin/products" element={
-                      <AdminRoute>
-                        <ProductListPage />
-                      </AdminRoute>
+                      <Suspense fallback={<PageLoading />}>
+                        <AdminRoute>
+                          <ProductListPage />
+                        </AdminRoute>
+                      </Suspense>
                     } />
                     <Route path="/admin/products/manage" element={
-                      <AdminRoute>
-                        <ProductManagePage />
-                      </AdminRoute>
+                      <Suspense fallback={<PageLoading />}>
+                        <AdminRoute>
+                          <ProductManagePage />
+                        </AdminRoute>
+                      </Suspense>
                     } />
                     <Route path="/admin/categories" element={
-                      <AdminRoute>
-                        <CategoryManagePage />
-                      </AdminRoute>
+                      <Suspense fallback={<PageLoading />}>
+                        <AdminRoute>
+                          <CategoryManagePage />
+                        </AdminRoute>
+                      </Suspense>
                     } />
                     <Route path="/admin/orders" element={
-                      <AdminRoute>
-                        <OrderListPage />
-                      </AdminRoute>
+                      <Suspense fallback={<PageLoading />}>
+                        <AdminRoute>
+                          <OrderListPage />
+                        </AdminRoute>
+                      </Suspense>
                     } />
                     <Route path="/admin/offers" element={
-                      <AdminRoute>
-                        <OfferManagePage />
-                      </AdminRoute>
+                      <Suspense fallback={<PageLoading />}>
+                        <AdminRoute>
+                          <OfferManagePage />
+                        </AdminRoute>
+                      </Suspense>
                     } />
                     <Route path="/admin/coupons" element={
-                      <AdminRoute>
-                        <CouponManagePage />
-                      </AdminRoute>
+                      <Suspense fallback={<PageLoading />}>
+                        <AdminRoute>
+                          <CouponManagePage />
+                        </AdminRoute>
+                      </Suspense>
                     } />
                     <Route path="/admin/settings" element={
-                      <AdminRoute>
-                        <SettingsPage />
-                      </AdminRoute>
+                      <Suspense fallback={<PageLoading />}>
+                        <AdminRoute>
+                          <SettingsPage />
+                        </AdminRoute>
+                      </Suspense>
                     } />
                     
                     {/* Public Routes - With Header/Footer */}
                     <Route path="/*" element={
                       <>
-                        <Header />
+                        <Suspense fallback={<PageLoading />}>
+                          <Header />
+                        </Suspense>
                         <main className="main-content">
                           <Routes>
-                            <Route path="/" element={<HomePage />} />
-                            <Route path="/products" element={<ProductsPage />} />
-                            <Route path="/products/:slug" element={<ProductDetailPage />} />
-                            <Route path="/offers" element={<OffersPage />} />
-                            <Route path="/cart" element={<CartPage />} />
-                            <Route path="/checkout" element={<CheckoutPage />} />
-                            <Route path="/auth" element={<AuthPage />} />
-                            <Route path="/login" element={<LoginPage />} />
-                            <Route path="/register" element={<RegisterPage />} />
-                            <Route path="/profile" element={<ProfilePage />} />
-                            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-                            <Route path="/terms-of-service" element={<TermsOfServicePage />} />
-                            <Route path="/refund-policy" element={<RefundPolicyPage />} />
-                            <Route path="/shipping-policy" element={<ShippingPolicyPage />} />
-                            <Route path="/cookie-policy" element={<CookiePolicyPage />} />
-                            <Route path="/about-us" element={<AboutUsPage />} />
-                            <Route path="/contact" element={<ContactPage />} />
-                            <Route path="/help-center" element={<HelpCenterPage />} />
+                            <Route path="/" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <HomePage />
+                              </Suspense>
+                            } />
+                            <Route path="/products" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <ProductsPage />
+                              </Suspense>
+                            } />
+                            <Route path="/products/:slug" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <ProductDetailPage />
+                              </Suspense>
+                            } />
+                            <Route path="/offers" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <OffersPage />
+                              </Suspense>
+                            } />
+                            <Route path="/cart" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <CartPage />
+                              </Suspense>
+                            } />
+                            <Route path="/checkout" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <CheckoutPage />
+                              </Suspense>
+                            } />
+                            <Route path="/auth" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <AuthPage />
+                              </Suspense>
+                            } />
+                            <Route path="/login" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <LoginPage />
+                              </Suspense>
+                            } />
+                            <Route path="/register" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <RegisterPage />
+                              </Suspense>
+                            } />
+                            <Route path="/profile" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <ProfilePage />
+                              </Suspense>
+                            } />
+                            <Route path="/privacy-policy" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <PrivacyPolicyPage />
+                              </Suspense>
+                            } />
+                            <Route path="/terms-of-service" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <TermsOfServicePage />
+                              </Suspense>
+                            } />
+                            <Route path="/refund-policy" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <RefundPolicyPage />
+                              </Suspense>
+                            } />
+                            <Route path="/shipping-policy" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <ShippingPolicyPage />
+                              </Suspense>
+                            } />
+                            <Route path="/cookie-policy" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <CookiePolicyPage />
+                              </Suspense>
+                            } />
+                            <Route path="/about-us" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <AboutUsPage />
+                              </Suspense>
+                            } />
+                            <Route path="/contact" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <ContactPage />
+                              </Suspense>
+                            } />
+                            <Route path="/help-center" element={
+                              <Suspense fallback={<PageLoading />}>
+                                <HelpCenterPage />
+                              </Suspense>
+                            } />
                           </Routes>
                         </main>
-                        <Footer />
+                        <Suspense fallback={<PageLoading />}>
+                          <Footer />
+                        </Suspense>
                       </>
                     } />
                   </Routes>
                 </div>
                 <NotificationProvider />
                 <PWAInstallPrompt />
+                <PerformanceMonitor />
               </Router>
             </ToastProvider>
           </ThemeProvider>
